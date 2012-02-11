@@ -104,6 +104,30 @@ object ServerSpec extends Specification {
       actual must beEqualTo(expected)
     }
 
+    // The client redirects Jane's user-agent to the server's Resource Owner
+    // Authorization endpoint to obtain Jane's approval for accessing her
+    // private photos.
+
+    // And then, ...
+
+    // (Not defined in the OAuth spec.)
+    "redirects Jane to the login page" in {
+
+      val request = FakeRequestGenerator.get(
+        host = photosWebSite,
+        path = "/authorize",
+        queryString = Some("?oauth_token=hh5s93j4hdidpola")
+      )
+
+      val expected = FakeResponseGenerator.redirect(
+        url = "https://photos.example.com/login"
+      )
+
+      val actual = server.receive(request)
+
+      actual must beEqualTo(expected)
+    }
+
     "requests Jane to sign in using her username and password" in {
 
       val request = FakeRequestGenerator.get(
@@ -122,7 +146,7 @@ object ServerSpec extends Specification {
       actual must beEqualTo(expected)
     }
 
-    // Not in spec
+    // (Not defined in the OAuth spec.)
     "make Jane logged in" in {
 
       val request = FakeRequestGenerator.post(
@@ -146,7 +170,7 @@ object ServerSpec extends Specification {
 
       val request = FakeRequestGenerator.get(
         host = photosWebSite,
-        path = "/access_grant"
+        path = "/authorize"
       )
 
       val expected = FakeResponseGenerator.ok(
@@ -159,11 +183,11 @@ object ServerSpec extends Specification {
       actual must beEqualTo(expected)
     }
 
-    "sends redirect to callback URI provided by the client" in {
+    "redirects Jane's user-agent to callback URI provided by the client" in {
 
       val request: Request = FakeRequestGenerator.post(
         host = "photos.example.com",
-        path = "/access_grant"
+        path = "/authorize"
       )
 
       val expected: Response = FakeResponseGenerator.redirect("http://printer.example.com/ready?oauth_token=hh5s93j4hdidpola&oauth_verifier=hfdp7dh39dks9884")
