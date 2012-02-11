@@ -66,38 +66,6 @@ case class FakeRequest(
 
 trait SignedRequest
 
-trait PublicKey {
-  def verify(r: SignedRequest): Request
-}
-
-// Used by RSA-SHA-1 to sign a request.
-trait PrivateKey {
-  def sign(r: Request): SignedRequest
-}
-
-object AsymmetricSharedSecret extends SharedSecret {
-  type ServerSide = PublicKey
-  type ClientSide = PrivateKey
-}
-
-/**
- * OAuth defines 3 signature methods used to sign and verify requests
- */
-trait SignatureMethod
-
-// Client signs a request by RSA-SHA-1
-object RSASHA1 extends SignatureMethod {
-  def digest(data: String, secret: PrivateKey) = ""
-}
-
-object PLAINTEXT extends SignatureMethod {
-  def digest(data: String, secret: CombinationOfClientSecretAndTokenSecret) = ""
-}
-
-object HMACSHA1 extends SignatureMethod {
-  def digest(data: String, secret: CombinationOfClientSecretAndTokenSecret) = ""
-}
-
 /**
  * Credentials and Tokens
  *
@@ -188,10 +156,6 @@ trait Client {
  */
 trait Provider {
 
-}
-
-trait Server {
-  def markResourceOwnerAuthorized(temporaryCredentials: TemporaryCredentials): Unit
 }
 
 trait ResourceOwner {

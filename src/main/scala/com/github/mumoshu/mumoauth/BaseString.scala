@@ -1,5 +1,7 @@
 package com.github.mumoshu.mumoauth
 
+import com.github.mumoshu.mumoauth.Request
+
 object BaseString {
 
   def hex(s: String) = Integer.toHexString(s.charAt(0).toInt)
@@ -17,7 +19,6 @@ object BaseString {
 
   // 3.4.1.3.1.  Parameter Sources
   def parametersOf(req: Request): Array[(String, String)] = {
-    val p = "([^ ,]+)=\"([^\"]*)".r
 
     val queryComponents = req.queryString.getOrElse("").replaceFirst("\\?", "").split("&").foldLeft(Array.empty[(String, String)]) {
       (ary, keyValuePair) =>
@@ -28,13 +29,7 @@ object BaseString {
         }
     }
 
-    val authorizationHeaderParameters = p.findAllIn(req.authorization.getOrElse("").replaceFirst("OAuth", "")).matchData.map(_.subgroups).foldLeft(Array.empty[(String, String)]) {
-      case (ary, List(key, value)) if !List("realm", "oauth_signature").contains(key) =>
-        ary ++ Array(key -> value)
-      case (ary, List(_, _)) => ary
-      case _ =>
-        throw new RuntimeException("Could not match something...")
-    }
+    val authorizationHeaderParameters = authorizationHeaderParametersOf(req, List("realm", "oauth_signature"))
 
     val entityBodyParameters = if (req.contentType == Some("application/x-www-form-urlencoded"))
       req.entityBody.getOrElse("").split("&").foldLeft(Array.empty[(String, String)]) {
@@ -65,6 +60,19 @@ object BaseString {
     schemeInLowerCase + "://" + host.toLowerCase + (if (schemeInLowerCase == "http" && port != 80 || schemeInLowerCase == "https" && port != 443) {
       ":" + port
     } else "") + path
+  }
+
+  def authorizationHeaderParametersOf(req: Request, excludes: List[String] = Nil): Array[(String, String)] = {
+
+    val p = "([^ ,]+)=\"([^\"]*)".r
+
+    p.findAllIn(req.authorization.getOrElse("").replaceFirst("OAuth", "")).matchData.map(_.subgroups).foldLeft(Array.empty[(String, String)]) {
+      case (ary, List(key, value)) if !excludes.contains(key) =>
+        ary ++ Array(key -> value)
+      case (ary, List(_, _)) => ary
+      case _ =>
+        throw new RuntimeException("Could not match something...")
+    }
   }
 
 }

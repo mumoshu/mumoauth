@@ -37,5 +37,17 @@ trait Request {
     } + path + queryString
   }
 
+  def oauthSignature: Option[String] = {
+    BaseString.authorizationHeaderParametersOf(this).find(_._1 == "oauth_signature").map(_._2)
+  }
+
+  def oauthClientIdentifier: Option[String] = {
+    BaseString.authorizationHeaderParametersOf(this).find(_._1 == "oauth_consumer_key").map(_._2)
+  }
+
+  def oauthTemporaryOrTokenIdentifier: Option[String] = {
+    BaseString.authorizationHeaderParametersOf(this).find(_._1 == "oauth_token").map(_._2)
+  }
+
   def concat = method.toString.toUpperCase + "&" + baseStringURI + "&" + ""
 }
