@@ -61,8 +61,8 @@ case class FakeRequest(
   authorization: Option[String] = None,
   contentType: Option[String] = None,
   messageBody: Option[String] = None,
-  port: Int = 80,
-  scheme: String = "http") extends Request
+  port: Int,
+  scheme: String) extends Request
 
 trait SignedRequest
 

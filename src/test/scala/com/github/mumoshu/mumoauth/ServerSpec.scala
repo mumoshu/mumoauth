@@ -3,6 +3,8 @@ package com.github.mumoshu.mumoauth
 import org.specs2.mutable._
 import server._
 
+import Helpers._
+
 object ServerSpec extends Specification {
 
   // oauth_consumer_key
@@ -15,14 +17,14 @@ object ServerSpec extends Specification {
   val tokenIdentifier = "nnch734d00sl2jdk"
   val tokenSharedSecret = "pfkkdhi9sl3r4s00"
 
-  val printerWebSite = "printer.example.com"
-  val photosWebSite = "photos.example.com"
+  val printerWebSite = "printer.example.net"
+  val photosWebSite = "photos.example.net"
 
   val signatureMethod = "HMAC-SHA1"
 
-  val temporaryCredentialRequestURI = "https://photos.example.com/initiate"
-  val resourceOwnerAuthorizationURI = "https://photos.example.com/authorize"
-  val tokenRequestURI = "https://photos.example.com"
+  val temporaryCredentialRequestURI = "https://photos.example.net/initiate"
+  val resourceOwnerAuthorizationURI = "https://photos.example.net/authorize"
+  val tokenRequestURI = "https://photos.example.net"
 
   case class FakeResponse(
     status: Int,
@@ -42,24 +44,6 @@ object ServerSpec extends Specification {
       status = 303,
       httpVersion = "1.1",
       location = Some(url)
-    )
-  }
-  object FakeRequestGenerator extends RequestGenerator {
-
-    def post(path: String, host: String, contentType: Option[String] = None, body: Option[String] = None, authorization: Option[String] = None) = FakeRequest(
-      method = "POST",
-      path = path,
-      host = host,
-      contentType = contentType,
-      messageBody = body,
-      authorization = authorization
-    )
-
-    def get(path: String, queryString: Option[String] = None, host: String) = FakeRequest(
-      method = "GET",
-      path = path,
-      queryString = queryString,
-      host = host
     )
   }
 
@@ -115,8 +99,9 @@ object ServerSpec extends Specification {
     "validate the request and replies with a set of temporary credentials" in {
 
       val request = FakeRequestGenerator.post(
+        scheme = "https",
         path = "/initiate",
-        host = "photos.example.com",
+        host = "photos.example.net",
         authorization = Some("""OAuth realm="Photos",oauth_consumer_key="dpf43f3p2l4k3l03",oauth_signature_method="HMAC-SHA1",oauth_timestamp="137131200",oauth_nonce="wIjqoS",oauth_callback="http%3A%2F%2Fprinter.example.com%2Fready",oauth_signature="74KNZJeDHnMBp0EMJ9ZHt%2FXKycU%3D"""")
       )
 
@@ -140,6 +125,7 @@ object ServerSpec extends Specification {
     "redirects Jane to the login page" in {
 
       val request = FakeRequestGenerator.get(
+        scheme = "https",
         host = photosWebSite,
         path = "/authorize",
         queryString = Some("?oauth_token=hh5s93j4hdidpola")
@@ -157,6 +143,7 @@ object ServerSpec extends Specification {
     "requests Jane to sign in using her username and password" in {
 
       val request = FakeRequestGenerator.get(
+        scheme = "https",
         host = photosWebSite,
         path = "/login",
         queryString = Some("token??")
@@ -176,6 +163,7 @@ object ServerSpec extends Specification {
     "make Jane logged in" in {
 
       val request = FakeRequestGenerator.post(
+        scheme = "https",
         host = photosWebSite,
         path = "/login",
         contentType = Some("application/x-www-form-urlencoded"),
@@ -195,6 +183,7 @@ object ServerSpec extends Specification {
     "asks Jane to approve granting 'printer.example.com' access to her private photos" in {
 
       val request = FakeRequestGenerator.get(
+        scheme = "https",
         host = photosWebSite,
         path = "/authorize"
       )
@@ -212,7 +201,8 @@ object ServerSpec extends Specification {
     "redirects Jane's user-agent to callback URI provided by the client" in {
 
       val request: Request = FakeRequestGenerator.post(
-        host = "photos.example.com",
+        scheme = "https",
+        host = "photos.example.net",
         path = "/authorize"
       )
 
@@ -226,6 +216,7 @@ object ServerSpec extends Specification {
     "validates the request and and replies with a set of token credentials in the body of the HTTP response" in {
 
       val request = FakeRequestGenerator.post(
+        scheme = "https",
         host = "photos.example.net",
         path = "/token",
         authorization = Some("""OAuth realm="Photos",oauth_consumer_key="dpf43f3p2l4k3l03",oauth_token="hh5s93j4hdidpola",oauth_signature_method="HMAC-SHA1",oauth_timestamp="137131201",oauth_nonce="walatlh",oauth_verifier="hfdp7dh39dks9884",oauth_signature="gKgrFCywp7rO0OXSjdot%2FIHF7IU%3D"""")

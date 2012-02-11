@@ -14,20 +14,26 @@ object BaseString {
   // 3.6.  Percent Encoding
   def percentEncodeOf(str: String) =
     str.split("").filter(_ != "").map(percentEncodeSingle).mkString("")
+  //    java.net.URLEncoder.encode(str, "UTF-8")
+  //      // OAuth encodes some characters differently:
+  //      .replace("+", "%20").replace("*", "%2A")
+  //      .replace("%7E", "~")
+
+  def percentDecodeOf(str: String): String = {
+    val p = "%([A-F0-9]{2})".r
+    p.replaceAllIn(
+      str,
+      m => Integer.parseInt(m.group(1), 16).toChar.toString.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\$", "\\\\\\$")
+    )
+    //    java.net.URLDecoder.decode(str, "UTF-8")
+  }
 
   private def urlDecode(encoded: String) = java.net.URLDecoder.decode(encoded, "UTF-8")
 
   // 3.4.1.3.1.  Parameter Sources
   def parametersOf(req: Request): Array[(String, String)] = {
 
-    val queryComponents = req.queryString.getOrElse("").replaceFirst("\\?", "").split("&").foldLeft(Array.empty[(String, String)]) {
-      (ary, keyValuePair) =>
-        keyValuePair.split("=").map(urlDecode) match {
-          case Array(key, value) => ary ++ Array(key -> value)
-          case Array(key) if keyValuePair.endsWith("=") => ary ++ Array(key -> "")
-          case _ => throw new RuntimeException("Could not match %s".format(keyValuePair))
-        }
-    }
+    val queryComponents = queryComponentsOf(req)
 
     val authorizationHeaderParameters = authorizationHeaderParametersOf(req, List("realm", "oauth_signature"))
 
@@ -62,11 +68,25 @@ object BaseString {
     } else "") + path
   }
 
+  def queryComponentsOf(req: Request): Array[(String, String)] = {
+    req.queryString match {
+      case Some(q) => q.replaceFirst("\\?", "").split("&").foldLeft(Array.empty[(String, String)]) {
+        (ary, keyValuePair) =>
+          keyValuePair.split("=").map(urlDecode) match {
+            case Array(key, value) => ary ++ Array(key -> value)
+            case Array(key) if keyValuePair.endsWith("=") => ary ++ Array(key -> "")
+            case _ => throw new RuntimeException("Could not match %s".format(keyValuePair))
+          }
+      }
+      case _ => Array.empty
+    }
+  }
+
   def authorizationHeaderParametersOf(req: Request, excludes: List[String] = Nil): Array[(String, String)] = {
 
     val p = "([^ ,]+)=\"([^\"]*)".r
 
-    p.findAllIn(req.authorization.getOrElse("").replaceFirst("OAuth", "")).matchData.map(_.subgroups).foldLeft(Array.empty[(String, String)]) {
+    p.findAllIn(req.authorization.getOrElse("").replaceFirst("OAuth", "")).matchData.map(_.subgroups).map(groups => groups.map(percentDecodeOf)).foldLeft(Array.empty[(String, String)]) {
       case (ary, List(key, value)) if !excludes.contains(key) =>
         ary ++ Array(key -> value)
       case (ary, List(_, _)) => ary

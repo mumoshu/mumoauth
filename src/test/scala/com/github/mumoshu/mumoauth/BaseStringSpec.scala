@@ -5,6 +5,8 @@ import org.specs2.mutable._
 object BaseStringSpec extends Specification {
 
   val req = FakeRequest(
+    scheme = "http",
+    port = 80,
     method = "POST",
     path = "/request",
     queryString = Some("?b5=%3D%253D&a3=a&c%40=&a2=r%20b"),
@@ -83,16 +85,28 @@ object BaseStringSpec extends Specification {
   // 3.6.  Percent Encoding
   "percent encoding" should {
 
+    import BaseString.{ percentEncodeOf, percentDecodeOf }
+
     "should properly percent encode" in {
-      import BaseString.percentEncodeOf
 
       val unreservedCharacters = "abcdefghijlmnopqrstuvwxyz0123456789-._~"
 
       percentEncodeOf(unreservedCharacters) must beEqualTo(unreservedCharacters)
 
-      val reservedCharacters = "!\"#$%&'()=^|¥[{@`]}:*,<>/?"
+      val reservedCharacters = """!\"#$%&'()=^|¥[{@`]}:*,<>/?"""
 
-      percentEncodeOf(reservedCharacters) must beEqualTo("%21%22%23%24%25%26%27%28%29%3D%5E%7C%A5%5B%7B%40%60%5D%7D%3A%2A%2C%3C%3E%2F%3F")
+      percentEncodeOf(reservedCharacters) must beEqualTo("%21%5C%22%23%24%25%26%27%28%29%3D%5E%7C%A5%5B%7B%40%60%5D%7D%3A%2A%2C%3C%3E%2F%3F")
+
+      percentDecodeOf(percentEncodeOf(reservedCharacters + unreservedCharacters)) must beEqualTo(reservedCharacters + unreservedCharacters)
+    }
+
+    "should properly decode" in {
+
+      percentDecodeOf("abcdefg") must beEqualTo("abcdefg")
+
+      percentDecodeOf(percentEncodeOf("#$%&'()0")) must beEqualTo("#$%&'()0")
+
+      percentDecodeOf("http%3A%2F%2Fprinter.example.com%2Fready") must beEqualTo("http://printer.example.com/ready")
     }
   }
 

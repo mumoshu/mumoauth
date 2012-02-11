@@ -12,9 +12,9 @@ trait ResponseGenerator {
 // The OAuth client must implement this to communicate with the server.
 trait RequestGenerator {
 
-  def get(path: String, queryString: Option[String], host: String): Request
+  def get(scheme: String, path: String, queryString: Option[String], host: String, port: Option[Int]): Request
 
-  def post(path: String, host: String, contentType: Option[String], body: Option[String], authorization: Option[String]): Request
+  def post(scheme: String, path: String, host: String, port: Option[Int], contentType: Option[String], body: Option[String], authorization: Option[String]): Request
 }
 
 trait ClientCredentialsStore {
@@ -122,7 +122,7 @@ trait Server {
       case Some(secret) => secret
       case _ => throw new RuntimeException("The temporary secret for the temporary identifier is not found.")
     }
-    r.oauthSignature.exists(_ == signatureMethod(clientSecret, temporarySecret))
+    r.oauthSignature.exists(_ == signatureMethod(clientSecret, temporarySecret).sign(BaseString.baseStringOf(r)))
   }
 
   /**
@@ -139,13 +139,13 @@ trait Server {
       case Some(secret) => secret
       case _ => throw new RuntimeException("The token secret for the identifier is not found.")
     }
-    r.oauthSignature.exists(_ == signatureMethod(clientSecret, tokenSecret))
+    r.oauthSignature.exists(_ == signatureMethod(clientSecret, tokenSecret).sign(BaseString.baseStringOf(r)))
   }
 
   def initiate(r: Request): Response = {
     if (validateInitiate(r)) {
       val TemporaryCredential(identifier, secret) = temporaryCredentialsStore.generate()
-      val body = "oauth_token=%s&oauth_token_secret=&oauth_callback_confirmed=true".format(identifier, secret)
+      val body = "oauth_token=%s&oauth_token_secret=%s&oauth_callback_confirmed=true".format(identifier, secret)
       responseGenerator.ok(
         contentType = "application/x-www-form-urlencoded",
         body = body

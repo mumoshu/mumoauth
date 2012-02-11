@@ -33,7 +33,7 @@ trait Request {
   // http://tools.ietf.org/html/rfc5849#section-3.4.1.2
   def baseStringURI: String = {
     scheme.toLowerCase + "://" + host.toLowerCase + {
-      if (secure && port != 443 || !secure && port != 80) port else ""
+      if (secure && port != 443 || !secure && port != 80) ":" + port else ""
     } + path + queryString
   }
 
