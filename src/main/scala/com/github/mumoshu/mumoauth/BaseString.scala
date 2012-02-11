@@ -1,4 +1,4 @@
-package com.github.mumoshu.oauth
+package com.github.mumoshu.mumoauth
 
 object BaseString {
 
@@ -19,12 +19,13 @@ object BaseString {
   def parametersOf(req: Request): Array[(String, String)] = {
     val p = "([^ ,]+)=\"([^\"]*)".r
 
-    val queryComponents = req.queryString.getOrElse("").replaceFirst("\\?", "").split("&").foldLeft(Array.empty[(String, String)]) { (ary, keyValuePair) =>
-      keyValuePair.split("=").map(urlDecode) match {
-        case Array(key, value) => ary ++ Array(key -> value)
-        case Array(key) if keyValuePair.endsWith("=") => ary ++ Array(key -> "")
-        case _ => throw new RuntimeException("Could not match %s".format(keyValuePair))
-      }
+    val queryComponents = req.queryString.getOrElse("").replaceFirst("\\?", "").split("&").foldLeft(Array.empty[(String, String)]) {
+      (ary, keyValuePair) =>
+        keyValuePair.split("=").map(urlDecode) match {
+          case Array(key, value) => ary ++ Array(key -> value)
+          case Array(key) if keyValuePair.endsWith("=") => ary ++ Array(key -> "")
+          case _ => throw new RuntimeException("Could not match %s".format(keyValuePair))
+        }
     }
 
     val authorizationHeaderParameters = p.findAllIn(req.authorization.getOrElse("").replaceFirst("OAuth", "")).matchData.map(_.subgroups).foldLeft(Array.empty[(String, String)]) {
@@ -36,12 +37,13 @@ object BaseString {
     }
 
     val entityBodyParameters = if (req.contentType == Some("application/x-www-form-urlencoded"))
-      req.entityBody.getOrElse("").split("&").foldLeft(Array.empty[(String, String)]) { (ary, keyValuePair) =>
-        keyValuePair.split("=").map(urlDecode) match {
-          case Array(key, value) => ary ++ Array(key -> value)
-          case Array(key) => ary ++ Array(key -> "")
-          case _ => throw new RuntimeException("Could not parse %s".format(keyValuePair))
-        }
+      req.entityBody.getOrElse("").split("&").foldLeft(Array.empty[(String, String)]) {
+        (ary, keyValuePair) =>
+          keyValuePair.split("=").map(urlDecode) match {
+            case Array(key, value) => ary ++ Array(key -> value)
+            case Array(key) => ary ++ Array(key -> "")
+            case _ => throw new RuntimeException("Could not parse %s".format(keyValuePair))
+          }
       }
     else
       Array.empty[(String, String)]

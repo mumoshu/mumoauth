@@ -1,7 +1,6 @@
-package com.github.com.mumoshu.oauth
+package com.github.mumoshu.mumoauth
 
 import org.specs2.mutable._
-import com.github.mumoshu.oauth.{ FakeRequest, BaseString }
 
 object BaseStringSpec extends Specification {
 

@@ -1,7 +1,6 @@
-package com.github.com.mumoshu.oauth
+package com.github.mumoshu.mumoauth
 
 import org.specs2.mutable._
-import com.github.mumoshu.oauth.{ Response, Server, FakeRequest, Request }
 
 object ServerSpec extends Specification {
 
@@ -17,6 +16,7 @@ object ServerSpec extends Specification {
 
   trait ResponseGenerator {
     def ok(contentType: String, body: String): Response
+
     def redirect(url: String, setCookie: Option[String]): Response
   }
 
@@ -45,6 +45,7 @@ object ServerSpec extends Specification {
   trait RequestGenerator {
 
     def get(path: String, queryString: Option[String], host: String): Request
+
     def post(path: String, host: String, contentType: Option[String], body: Option[String], authorization: Option[String]): Request
   }
 

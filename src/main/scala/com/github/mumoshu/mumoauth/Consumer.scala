@@ -1,6 +1,6 @@
-package com.github.mumoshu.oauth
+package com.github.mumoshu.mumoauth
 
-import com.github.mumoshu.oauth.credentials.TemporaryCredentials
+import com.github.mumoshu.mumoauth.credentials._
 
 /**
  * 2-Legged, 3-Legged, n-Legged
@@ -29,6 +29,7 @@ object secrets {
 trait HashAlgorithm {
   def digest(data: String): Unit
 }
+
 object SHA1 extends HashAlgorithm {
   def digest(data: String) = {}
 }
@@ -42,10 +43,13 @@ object Combination extends SharedSecret {
   type ServerSide = CombinationOfClientSecretAndTokenSecret
   type ClientSide = CombinationOfClientSecretAndTokenSecret
 }
+
 case class CombinationOfClientSecretAndTokenSecret(clientSecret: String, tokenSecret: String) extends SharedSecret
 
 sealed trait Method
+
 object Get extends Method
+
 object Post extends Method
 
 case class FakeRequest(
@@ -167,10 +171,13 @@ object ThreeLegged {
 
 trait Client {
   def obtainTemporaryCredentials: Unit
+
   def obtainTokenCredentials: Unit
+
   def requestResourceOwnerAuthorizaton: Unit
 
   def requestTemporaryCredentials: Unit
+
   def redirectsResourceOwner: Unit
 }
 
@@ -189,5 +196,6 @@ trait Server {
 
 trait ResourceOwner {
   def approvesRequest(): Unit
+
   def revokeAccessToken(): Unit
 }
