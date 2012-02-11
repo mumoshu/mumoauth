@@ -8,12 +8,12 @@ object BaseStringSpec extends Specification {
   val req = FakeRequest(
     method = "POST",
     path = "/request",
-    queryString = "?b5=%3D%253D&a3=a&c%40=&a2=r%20b",
+    queryString = Some("?b5=%3D%253D&a3=a&c%40=&a2=r%20b"),
     httpVersion = "1.1",
     host = "example.com",
-    authorization = """OAuth realm="Example",oauth_consumer_key="9djdj82h48djs9d2",oauth_token="kkk9d7dh3k39sjv7",oauth_signature_method="HMAC-SHA1",oauth_timestamp="137131201",oauth_nonce="7d8f3e4a",oauth_signature="bYT5CMsGcbgUdFHObYMEfcx6bsw%3D"""",
-    contentType = "application/x-www-form-urlencoded",
-    messageBody = "c2&a3=2+q"
+    authorization = Some("""OAuth realm="Example",oauth_consumer_key="9djdj82h48djs9d2",oauth_token="kkk9d7dh3k39sjv7",oauth_signature_method="HMAC-SHA1",oauth_timestamp="137131201",oauth_nonce="7d8f3e4a",oauth_signature="bYT5CMsGcbgUdFHObYMEfcx6bsw%3D""""),
+    contentType = Some("application/x-www-form-urlencoded"),
+    messageBody = Some("c2&a3=2+q")
   )
 
   "The base string of the example HTTP request in OAuth spec" should {

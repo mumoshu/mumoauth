@@ -48,42 +48,15 @@ sealed trait Method
 object Get extends Method
 object Post extends Method
 
-trait Request {
-  def method: String
-  def authority: String = ""
-  def path: String
-  def queryString: String
-  def oauthParameters: String = ""
-  def authorization: String
-  def contentType: String
-  def messageBody: String
-
-  def entityBody = messageBody
-
-  def scheme: String
-  def port: Int
-  def secure: Boolean = scheme.toLowerCase == "https"
-  // From the HOST header field
-  def host: String
-  def httpVersion: String
-
-  // http://tools.ietf.org/html/rfc5849#section-3.4.1.2
-  def baseStringURI: String = {
-    scheme.toLowerCase + "://" + host.toLowerCase + { if (secure && port != 443 || !secure && port != 80) port else "" } + path + queryString
-  }
-
-  def concat = method.toString.toUpperCase + "&" + baseStringURI + "&" + ""
-}
-
 case class FakeRequest(
   method: String,
   path: String,
-  queryString: String,
-  httpVersion: String,
+  queryString: Option[String] = None,
+  httpVersion: String = "1.1",
   host: String,
-  authorization: String,
-  contentType: String,
-  messageBody: String,
+  authorization: Option[String] = None,
+  contentType: Option[String] = None,
+  messageBody: Option[String] = None,
   port: Int = 80,
   scheme: String = "http") extends Request
 

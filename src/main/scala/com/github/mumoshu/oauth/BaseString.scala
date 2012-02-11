@@ -19,7 +19,7 @@ object BaseString {
   def parametersOf(req: Request): Array[(String, String)] = {
     val p = "([^ ,]+)=\"([^\"]*)".r
 
-    val queryComponents = req.queryString.replaceFirst("\\?", "").split("&").foldLeft(Array.empty[(String, String)]) { (ary, keyValuePair) =>
+    val queryComponents = req.queryString.getOrElse("").replaceFirst("\\?", "").split("&").foldLeft(Array.empty[(String, String)]) { (ary, keyValuePair) =>
       keyValuePair.split("=").map(urlDecode) match {
         case Array(key, value) => ary ++ Array(key -> value)
         case Array(key) if keyValuePair.endsWith("=") => ary ++ Array(key -> "")
@@ -27,7 +27,7 @@ object BaseString {
       }
     }
 
-    val authorizationHeaderParameters = p.findAllIn(req.authorization.replaceFirst("OAuth", "")).matchData.map(_.subgroups).foldLeft(Array.empty[(String, String)]) {
+    val authorizationHeaderParameters = p.findAllIn(req.authorization.getOrElse("").replaceFirst("OAuth", "")).matchData.map(_.subgroups).foldLeft(Array.empty[(String, String)]) {
       case (ary, List(key, value)) if !List("realm", "oauth_signature").contains(key) =>
         ary ++ Array(key -> value)
       case (ary, List(_, _)) => ary
@@ -35,8 +35,8 @@ object BaseString {
         throw new RuntimeException("Could not match something...")
     }
 
-    val entityBodyParameters = if (req.contentType == "application/x-www-form-urlencoded")
-      req.entityBody.split("&").foldLeft(Array.empty[(String, String)]) { (ary, keyValuePair) =>
+    val entityBodyParameters = if (req.contentType == Some("application/x-www-form-urlencoded"))
+      req.entityBody.getOrElse("").split("&").foldLeft(Array.empty[(String, String)]) { (ary, keyValuePair) =>
         keyValuePair.split("=").map(urlDecode) match {
           case Array(key, value) => ary ++ Array(key -> value)
           case Array(key) => ary ++ Array(key -> "")
