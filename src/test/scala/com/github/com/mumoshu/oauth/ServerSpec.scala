@@ -27,7 +27,7 @@ object ServerSpec extends Specification {
     location: Option[String] = None,
     httpVersion: String = "1.1") extends Response
 
-  implicit object FakeResponseGenerator extends ResponseGenerator {
+  object FakeResponseGenerator extends ResponseGenerator {
     def ok(contentType: String, body: String): Response = FakeResponse(
       status = 200,
       contentType = Some(contentType),
