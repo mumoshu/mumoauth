@@ -13,6 +13,6 @@ scalacOptions += "-deprecation"
 
 seq(scalariformSettings: _*)
 
-libraryDependencies += "org.specs2" %% "specs2" % "1.7.1" % "test"
+libraryDependencies += "org.specs2" %% "specs2" % "1.9" % "test"
 
 libraryDependencies += "commons-codec" % "commons-codec" % "1.6"
