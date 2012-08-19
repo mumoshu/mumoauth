@@ -1,6 +1,7 @@
 package com.github.mumoshu.mumoauth
 
-import server.RequestGenerator
+import server.{ ResponseGenerator, RequestGenerator }
+import test.FakeResponse
 
 object Helpers {
 
@@ -26,6 +27,19 @@ object Helpers {
       queryString = queryString,
       host = host,
       port = port.getOrElse(defaultPortFor(scheme))
+    )
+  }
+
+  object FakeResponseGenerator extends ResponseGenerator {
+
+    def ok(contentType: String, body: String) = FakeResponse(
+      status = 200,
+      contentType = Some(contentType),
+      body = Some(body)
+    )
+
+    def redirect(url: String, setCookie: Option[String] = None) = FakeResponse(
+      status = 302
     )
   }
 }

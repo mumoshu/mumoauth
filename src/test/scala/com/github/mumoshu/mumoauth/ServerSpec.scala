@@ -4,95 +4,9 @@ import org.specs2.mutable._
 import server._
 
 import Helpers._
+import test.DependsServer
 
-object ServerSpec extends Specification {
-
-  // oauth_consumer_key
-  val clientIdentifier = "dpf43f3p2l4k3l03"
-  val clientSharedSecret = "kd94hf93k423kf44"
-
-  val temporaryIdentifier = "hh5s93j4hdidpola"
-  val temporarySharedSecret = "hdhd0244k9j7ao03"
-
-  val tokenIdentifier = "nnch734d00sl2jdk"
-  val tokenSharedSecret = "pfkkdhi9sl3r4s00"
-
-  val printerWebSite = "printer.example.net"
-  val photosWebSite = "photos.example.net"
-
-  val signatureMethod = "HMAC-SHA1"
-
-  val temporaryCredentialRequestURI = "https://photos.example.net/initiate"
-  val resourceOwnerAuthorizationURI = "https://photos.example.net/authorize"
-  val tokenRequestURI = "https://photos.example.net"
-
-  case class FakeResponse(
-    status: Int,
-    contentType: Option[String] = None,
-    body: Option[String] = None,
-    location: Option[String] = None,
-    httpVersion: String = "1.1") extends Response
-
-  object FakeResponseGenerator extends ResponseGenerator {
-    def ok(contentType: String, body: String): Response = FakeResponse(
-      status = 200,
-      contentType = Some(contentType),
-      body = Some(body)
-    )
-
-    def redirect(url: String, setCookie: Option[String] = None): Response = FakeResponse(
-      status = 303,
-      httpVersion = "1.1",
-      location = Some(url)
-    )
-  }
-
-  val server = new Server {
-    //    val tokenCredentialsStore = FakeTokenCredentialsStore.empty
-    //    val temporaryCredentialsStore = FakeTemporaryCredentialsStore.empty
-    //    val userSessionsStore = FakeUserSessionsStore()
-
-    def signatureMethod(clientSecret: String, tokenSecret: String) = HMACSHA1(
-      clientSecret = clientSecret,
-      tokenSecret = tokenSecret
-    )
-
-    val initiatePath = "/initiate"
-    val resourceOwnerAuthorizationPath = "/authorize"
-    val tokenRequestPath = "/token"
-
-    val responseGenerator = FakeResponseGenerator
-
-    val clientCredentialsStore = new ClientCredentialsStore {
-      def getSecretByToken(token: String) =
-        if (token == clientIdentifier)
-          Some(clientSharedSecret)
-        else
-          None
-    }
-
-    val temporaryCredentialsStore = new TemporaryCredentialsStore {
-      def generate() = TemporaryCredential(temporaryIdentifier, temporarySharedSecret)
-
-      def getSecretByIdentifier(identifier: String) = {
-        if (identifier == temporaryIdentifier)
-          Some(temporarySharedSecret)
-        else
-          None
-      }
-    }
-
-    val tokenCredentialsStore = new TokenCredentialsStore {
-      def generate() = TokenCredential(tokenIdentifier, tokenSharedSecret)
-
-      def getSecretByIdentifier(identifier: String) = {
-        if (identifier == tokenIdentifier)
-          Some(tokenSharedSecret)
-        else
-          None
-      }
-    }
-  }
+object ServerSpec extends Specification with DependsServer {
 
   "The server" should {
 

@@ -167,4 +167,11 @@ trait Server {
     }
   }
 
+  def redirectWithCode(uri: String, code: String): Response = {
+    responseGenerator.redirect(
+      url = uri,
+      setCookie = None
+    )
+  }
+
 }
