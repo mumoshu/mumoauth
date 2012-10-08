@@ -1,0 +1,15 @@
+@(myForm: Form[AuthorizedGrantRequest])
+
+@import helper._
+
+@helper.form(action = routes.ServerController.code, 'id -> "myForm") {
+    @inputHidden(myForm("grant_type"))
+    @inputHidden(myForm("client_id"))
+    @inputHidden(myForm("redirect_uri"))
+    @inputHidden(myForm("requested_scope"))
+    @inputText(myForm("authorized_scope"))
+    @inputHidden(myForm("state"))
+
+    <input type="submit" />
+}
+

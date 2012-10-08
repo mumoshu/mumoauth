@@ -1,0 +1,29 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET     /                           controllers.ServerController.index
+# Client
+GET     /client/begin                      controllers.ClientController.begin(responseType: String = "code")
+GET     /client/begin/token                controllers.ClientController.begin(responseType: String = "token")
+GET     /client/authorizedCode             controllers.ClientController.authorizedCode(code: String, status: Option[String] ?= None)
+GET     /client/authorizedToken            controllers.ClientController.authorizedToken
+POST    /client/access_protected_resource  controllers.ClientController.accessProtectedResource
+# Server (outside spec)
+POST    /code                       controllers.ServerController.code
+GET     /resources/get              controllers.ProtectedResourcesController.get
+# Server (inside spec)
+# OAuth2 authorization endpoint.
+# The authorization server:
+# - must support HTTP "GET"
+# - may support HTTP "POST"
+# - must require TSL
+# http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.1
+GET     /authorize                  controllers.ServerController.authorize(response_type: String, client_id: Option[String] ?= None, redirect_uri: Option[String] ?= None, scope: Option[String] ?= None, state: Option[String])
+POST    /authorizePost              controllers.ServerController.authorizePost
+# OAuth2 token endpoint. Must require TSL
+POST    /token                      controllers.ServerController.token
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)
