@@ -1,8 +1,12 @@
 package com.github.mumoshu.mumoauth.test
 
 import org.specs2.specification.Scope
-import com.github.mumoshu.mumoauth.server.{ TokenCredentialsStore, TemporaryCredentialsStore, ClientCredentialsStore, Server }
+import com.github.mumoshu.mumoauth.server._
 import com.github.mumoshu.mumoauth.{ TokenCredential, TemporaryCredential, HMACSHA1 }
+import com.github.mumoshu.mumoauth.HMACSHA1
+import com.github.mumoshu.mumoauth.TokenCredential
+import com.github.mumoshu.mumoauth.TemporaryCredential
+import scala.Some
 
 trait DependsServer extends Scope {
 
@@ -25,21 +29,11 @@ trait DependsServer extends Scope {
   val resourceOwnerAuthorizationURI = "https://photos.example.net/authorize"
   val tokenRequestURI = "https://photos.example.net"
 
-  val server = new Server {
-    //    val tokenCredentialsStore = FakeTokenCredentialsStore.empty
-    //    val temporaryCredentialsStore = FakeTemporaryCredentialsStore.empty
-    //    val userSessionsStore = FakeUserSessionsStore()
-
+  val testServerConfiguration = new ServerConfiguration {
     def signatureMethod(clientSecret: String, tokenSecret: String) = HMACSHA1(
       clientSecret = clientSecret,
       tokenSecret = tokenSecret
     )
-
-    val initiatePath = "/initiate"
-    val resourceOwnerAuthorizationPath = "/authorize"
-    val tokenRequestPath = "/token"
-
-    val responseGenerator = FakeResponseGenerator
 
     val clientCredentialsStore = new ClientCredentialsStore {
       def getSecretByToken(token: String) =
@@ -70,6 +64,23 @@ trait DependsServer extends Scope {
           None
       }
     }
+  }
+
+  trait TestServerConfigurationComponent extends ServerConfigurationComponent {
+    def serverConfiguration = testServerConfiguration
+  }
+
+  val server = new Server with TestServerConfigurationComponent {
+    //    val tokenCredentialsStore = FakeTokenCredentialsStore.empty
+    //    val temporaryCredentialsStore = FakeTemporaryCredentialsStore.empty
+    //    val userSessionsStore = FakeUserSessionsStore()
+
+    val initiatePath = "/initiate"
+    val resourceOwnerAuthorizationPath = "/authorize"
+    val tokenRequestPath = "/token"
+
+    val responseGenerator = FakeResponseGenerator
+
   }
 
 }

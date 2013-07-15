@@ -36,7 +36,41 @@ trait TokenCredentialsStore {
   def getSecretByIdentifier(identifier: String): Option[String]
 }
 
+/**
+ * Each OAuth 2.0 server should be configured with its specitic:
+ * <ul>
+ *   <li>scopes</li>
+ *   <li>clients</li>
+ *   <li>temporary tokens</li>
+ *   <li>tokens</li>
+ *   <li>signature method</li>
+ * </ul>
+ */
+trait ServerConfiguration {
+  // val availableScopes: List[Scope]
+  val clientCredentialsStore: ClientCredentialsStore
+
+  val temporaryCredentialsStore: TemporaryCredentialsStore
+
+  val tokenCredentialsStore: TokenCredentialsStore
+
+  // TODO Create SignatureMethodProvider and facade this to that
+  def signatureMethod(clientSecret: String, tokenSecret: String): SignatureMethod
+}
+
+trait ServerConfigurationComponent {
+  def serverConfiguration: ServerConfiguration
+}
+
 trait Server {
+  self: ServerConfigurationComponent =>
+
+  // Incorporate all configuration parameters to this server
+  def clientCredentialsStore = serverConfiguration.clientCredentialsStore
+  def temporaryCredentialsStore = serverConfiguration.temporaryCredentialsStore
+  def tokenCredentialsStore = serverConfiguration.tokenCredentialsStore
+  def signatureMethod(clientSecret: String, tokenSecret: String) = serverConfiguration.signatureMethod(clientSecret, tokenSecret)
+
   //def markResourceOwnerAuthorized(temporaryCredentials: TemporaryCredentials): Unit
 
   //
@@ -61,14 +95,6 @@ trait Server {
   //
   // Credential stores
   //
-
-  val clientCredentialsStore: ClientCredentialsStore
-
-  val temporaryCredentialsStore: TemporaryCredentialsStore
-
-  val tokenCredentialsStore: TokenCredentialsStore
-
-  def signatureMethod(clientSecret: String, tokenSecret: String): SignatureMethod
 
   def receive(r: Request): Response = {
     r.path match {

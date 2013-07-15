@@ -6,8 +6,10 @@ import java.net.{URLDecoder, URLEncoder, URI}
 
 /**
  * Scope of authorizations to take control of accesses to protected resources
+ *
  * @param value
  * @param scope
+ * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.3
  */
 case class Scope(value: Int, scope: String)
 
