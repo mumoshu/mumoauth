@@ -1,6 +1,7 @@
-@(accessToken: String)
+@(accessToken: String, service: String)
 
 <form action="http://localhost:9000/client/access_protected_resource" method="POST">
     <input type="hidden" name="access_token" value="@accessToken" />
+    <input type="hidden" name="service" value="@service" />
     <input type="submit" />
 </form>

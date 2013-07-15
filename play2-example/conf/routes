@@ -5,9 +5,10 @@
 # Home page
 GET     /                           controllers.ServerController.index
 # Client
-GET     /client/begin                      controllers.ClientController.begin(responseType: String = "code")
-GET     /client/begin/token                controllers.ClientController.begin(responseType: String = "token")
-GET     /client/authorizedCode             controllers.ClientController.authorizedCode(code: String, status: Option[String] ?= None)
+GET     /client/begin                      controllers.ClientController.begin(responseType: String = "code", service: String ?= "local")
+GET     /client/begin/token                controllers.ClientController.begin(responseType: String = "token", service: String ?= "local")
+GET     /github                            controllers.ClientController.begin(responseType: String = "code", service: String = "github")
+GET     /client/authorizedCode             controllers.ClientController.authorizedCode(code: String, status: Option[String] ?= None, service: String ?= "local")
 GET     /client/authorizedToken            controllers.ClientController.authorizedToken
 POST    /client/access_protected_resource  controllers.ClientController.accessProtectedResource
 # Server (outside spec)

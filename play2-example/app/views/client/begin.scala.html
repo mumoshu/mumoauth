@@ -1,11 +1,12 @@
-@(myForm: Form[AuthorizationRequest])
+@(myForm: Form[AuthorizationRequest], service: String, authorizationEndpoint: Call)
 
-@helper.form(action = routes.ServerController.authorizePost, 'id -> "myForm") {
+@helper.form(action = authorizationEndpoint, 'id -> "myForm") {
     @helper.inputText(myForm("response_type"))
     @helper.inputText(myForm("client_id"))
     @helper.inputText(myForm("redirect_uri"))
     @helper.inputText(myForm("scope"))
     @helper.inputText(myForm("state"))
+    <input type="text" name="service" value="@service" />
 
     <input type="submit"/>
 }
