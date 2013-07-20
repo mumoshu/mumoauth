@@ -9,6 +9,8 @@ object ClientSvc extends ClientService {
     clients.get(id)
   }
   def save(client: Client): Client = {
+    if (client.requiresRedirectionURI && client.redirectionURI.isEmpty)
+      throw new RuntimeException("Redirection URI must be provided in order to register this client. See http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.1.2.2 for details.")
     clients ++= Map(client.id -> client)
     client
   }

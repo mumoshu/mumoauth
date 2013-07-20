@@ -25,11 +25,11 @@ class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, sco
     (clientSvc.find(clientId), redirectURI, requestedScope, requestedScope.flatMap(scopeDef.find)) match {
       case (None, _, _, _) =>
         Left(InvalidClientError)
-      case (Some(Client(_, _, Some(clientRedirectURI))), Some(providedRedirectURI), _, _) if clientRedirectURI != providedRedirectURI =>
+      case (Some(Client(_, _, Some(clientRedirectURI), _)), Some(providedRedirectURI), _, _) if clientRedirectURI != providedRedirectURI =>
         Left(InvalidRequestError("redirect_uri mismatches."))
-      case (Some(Client(_, _, None)), None, _, _) =>
+      case (Some(Client(_, _, None, _)), None, _, _) =>
         Left(InvalidRequestError("redirect_uri missing."))
-      case (Some(Client(_, _, _)), Some(redirectURI), _, _) if Utils.isMalformed(redirectURI) =>
+      case (Some(Client(_, _, _, _)), Some(redirectURI), _, _) if Utils.isMalformed(redirectURI) =>
         Left(InvalidRequestError("redirect_uri is malformed."))
       case (Some(client), redirectionURI, scope, validScope) =>
         val redirectURI = client.redirectionURI.orElse(redirectionURI)
@@ -59,11 +59,11 @@ class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, sco
     (clientSvc.find(clientId), redirectURI, requestedScope, requestedScope.flatMap(scopeDef.find)) match {
       case (None, _, _, _) =>
         Left(InvalidClientError)
-      case (Some(Client(_, _, Some(clientRedirectURI))), Some(providedRedirectURI), _, _) if clientRedirectURI != providedRedirectURI =>
+      case (Some(Client(_, _, Some(clientRedirectURI), _)), Some(providedRedirectURI), _, _) if clientRedirectURI != providedRedirectURI =>
         Left(InvalidRequestError("redirect_uri mismatches."))
-      case (Some(Client(_, _, None)), None, _, _) =>
+      case (Some(Client(_, _, None, _)), None, _, _) =>
         Left(InvalidRequestError("redirect_uri missing."))
-      case (Some(Client(_, _, _)), Some(redirectURI), _, _) if Utils.isMalformed(redirectURI) =>
+      case (Some(Client(_, _, _, _)), Some(redirectURI), _, _) if Utils.isMalformed(redirectURI) =>
         Left(InvalidRequestError("redirect_uri is malformed."))
       case (Some(client), redirectionURI, scope, validScope) =>
         val redirectURI = client.redirectionURI.orElse(redirectionURI)
