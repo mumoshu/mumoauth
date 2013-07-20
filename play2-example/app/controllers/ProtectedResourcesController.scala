@@ -1,7 +1,7 @@
 package controllers
 
 import play.api.mvc._
-import oauth2.{Token, AuthorizationHeader}
+import oauth2.{AuthorizationHeader}
 import models.TokenSvc
 
 object ProtectedResourcesController extends Controller {

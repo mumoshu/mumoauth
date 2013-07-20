@@ -1,4 +1,6 @@
-package oauth2
+package oauth2.error
+
+import oauth2.{Utils, TokenErrorResponseBuilder}
 
 sealed trait TokenError {
   val error: String

@@ -1,5 +1,7 @@
 package oauth2
 
+import oauth2.value_object.GrantType
+
 object AuthorizationCodeGrant {
   object AcecssTokenRequest {
     def getParametersAndHeaders(

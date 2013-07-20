@@ -13,17 +13,12 @@ import play.core.parsers.FormUrlEncodedParser
 import oauth2._
 import models.TokenSvc._
 import models.CodeSvc._
-import oauth2.InvalidRequestError
-import oauth2.AuthorizedGrantRequest
 import models.AuthorizationSvc
-import oauth2.AuthorizedGrantRequest
-import oauth2.Scope
-import oauth2.InvalidRequestError
-import oauth2.Token
 import scala.Some
-import oauth2.Client
-import oauth2.AuthorizedGrantRequest
 import models.Implicits._
+import oauth2.error.{InvalidClientError, InvalidGrantError, InvalidRequestError}
+import oauth2.entity.{Token, Client}
+import oauth2.value_object.{Scope, ResponseType, AuthorizedGrantRequest}
 
 /**
  * The OAuth2 authorization server

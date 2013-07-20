@@ -1,5 +1,4 @@
-@(myForm: Form[oauth2.AuthorizationRequest], service: String, authorizationEndpoint: Call)
-@import oauth2.AuthorizationRequest
+@(myForm: Form[oauth2.value_object.AuthorizationRequest], service: String, authorizationEndpoint: Call)
 
 @helper.form(action = authorizationEndpoint, 'id -> "myForm") {
     @helper.inputText(myForm("response_type"))

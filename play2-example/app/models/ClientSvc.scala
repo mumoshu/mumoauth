@@ -1,6 +1,7 @@
 package models
 
-import oauth2.{Client, ClientService}
+import oauth2.entity.{Client}
+import oauth2.service.ClientService
 
 object ClientSvc extends ClientService {
   var clients = Map("test" -> Client("test", "pass"))

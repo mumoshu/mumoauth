@@ -1,4 +1,6 @@
-package oauth2
+package oauth2.definition
+
+import oauth2.value_object.Scope
 
 trait ScopeDefinition {
   /**

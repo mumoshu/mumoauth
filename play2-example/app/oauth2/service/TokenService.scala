@@ -1,4 +1,9 @@
-package oauth2
+package oauth2.service
+
+import oauth2.error.TokenError
+import oauth2.entity.{Code, Token}
+import oauth2.{Utils}
+import oauth2.value_object.Scope
 
 trait TokenService {
   trait BaseParamBuilder {

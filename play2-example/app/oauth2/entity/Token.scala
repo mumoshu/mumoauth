@@ -1,6 +1,7 @@
-package oauth2
+package oauth2.entity
 
 import org.joda.time.DateTime
+import oauth2.value_object.Scope
 
 /**
  *

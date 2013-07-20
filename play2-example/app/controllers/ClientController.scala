@@ -8,7 +8,8 @@ import play.api.libs.json.Json
 import com.codahale.jerkson.ParsingException
 import play.api.Logger
 import play.core.parsers.FormUrlEncodedParser
-import oauth2.{AuthorizationRequest, Utils, OAuth2Settings, AuthorizationCodeGrant}
+import oauth2.{Utils, OAuth2Settings, AuthorizationCodeGrant}
+import oauth2.value_object.AuthorizationRequest
 
 /**
  * The OAuth2 client

@@ -1,4 +1,21 @@
-package oauth2
+package oauth2.service
+
+import oauth2.error.{InvalidClientError, InvalidRequestError, TokenError}
+import oauth2.entity.{Client}
+import oauth2.value_object._
+import oauth2._
+import scala.Left
+import oauth2.error.InvalidRequestError
+import scala.Some
+import scala.Right
+import oauth2.definition.ScopeDefinition
+import scala.Left
+import oauth2.value_object.CodeGrantRequest
+import oauth2.entity.Client
+import oauth2.error.InvalidRequestError
+import oauth2.value_object.ImplicitGrantRequest
+import scala.Some
+import scala.Right
 
 class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, scopeDef: ScopeDefinition, defaultScope: Scope) {
   def validateCode(clientId: String, redirectURI: Option[String], requestedScope: Option[String], state: Option[String]): Either[TokenError, CodeGrantRequest] = {

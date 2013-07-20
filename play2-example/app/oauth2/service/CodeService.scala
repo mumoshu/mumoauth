@@ -1,15 +1,10 @@
-package oauth2
+package oauth2.service
 
-/**
- * Authorization code confirmed by user
- * @param code the authorization code
- * @param requestedScope the scope of this authorization code the client requested
- * @param authorizedScope the actual scope of this authorization code confirmed by user. this may differ from requestedScope.
- * @param redirectURI redirect_uri provided on the request
- */
-case class Code(code: String, requestedScope: Scope, authorizedScope: Scope, redirectURI: Option[String] = None)
+import oauth2.entity.Code
+import oauth2.value_object.Scope
+import oauth2.Utils
 
-trait CodeDefinition {
+trait CodeService {
   implicit def toURIComponentBuilder(code: Code) = new {
     def parsedQueryParameterMap(state: Option[String]): Map[String, Seq[String]] = {
       val nameValuePairs = "code" -> code.code ::

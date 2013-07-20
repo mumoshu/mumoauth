@@ -3,6 +3,11 @@ package models
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
 import oauth2._
+import oauth2.error._
+import oauth2.entity.{Code, Token}
+import oauth2.service.{CodeService, TokenService, AuthorizationService}
+import oauth2.definition.ScopeDefinition
+import oauth2.value_object.Scope
 
 object ScopeDef extends ScopeDefinition {
 
@@ -17,9 +22,9 @@ object ScopeDef extends ScopeDefinition {
   def values = Values(Default)
 }
 
-object CodeSvc extends CodeDefinition {
+object CodeSvc extends CodeService {
   var codes = Map(
-    "myCode" -> oauth2.Code("myCode", ScopeDef.Default, ScopeDef.Default)
+    "myCode" -> Code("myCode", ScopeDef.Default, ScopeDef.Default)
   )
 
   def find(code: String): Option[Code] = codes.get(code)
@@ -107,7 +112,7 @@ object TokenSvc extends TokenService {
         Left(InvalidGrantError)
       case (_, _, None) =>
         Left(InvalidClientError)
-      case (grantType, _, Some(client)) if !ClientSvc.toMapped(client).authorizedGrantTypes.map(_.grantType).contains(grantType) =>
+      case (grantType, _, Some(client)) if !ClientSvc.toMapped(client).authorizedGrantTypes(ClientGrantTypeSvc).map(_.grantType).contains(grantType) =>
         Left(UnauthorizedClientError)
       case (grantType, Some(code), Some(client)) if code.redirectURI != redirectURI =>
         // redirectURI's must be identical if provided on the initial authorization request.
@@ -133,6 +138,7 @@ object AuthorizationSvc extends AuthorizationService(
 )
 
 object Implicits {
+  implicit val clientGrantTypeSvc = ClientGrantTypeSvc
   implicit val tokenErrorResponseBuilder = new TokenErrorResponseBuilder[JsValue] {
     def buildResponse(buildParamsMap: Map[String, Any]): JsValue = {
       Json.toJson(
