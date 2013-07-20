@@ -1,11 +1,29 @@
 package oauth2
 
 object AuthorizationCodeGrant {
-  // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.3
+  /**
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.3
+   */
   object AccessTokenRequestParameterNames {
+    /**
+     * REQUIRED.  Value MUST be set to "authorization_code"
+     */
     val GrantType = "grant_type"
+    /**
+     * REQUIRED.  The authorization code received from the
+     * authorization server.
+     */
     val Code = "code"
+    /**
+     * REQUIRED, if the "redirect_uri" parameter was included in the
+     * authorization request as described in Section 4.1.1, and their
+     * values MUST be identical.
+     */
     val RedirectURI = "redirect_uri"
+    /**
+     * REQUIRED, if the client is not authenticating with the
+     * authorization server as described in Section 3.2.1.
+     */
     val ClientId = "client_id"
   }
 
