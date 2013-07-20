@@ -12,7 +12,7 @@ object ClientGrantTypeSvc extends ClientGrantTypeService {
    * @return
    */
   def findByClient(client: Client): Seq[GrantType] = {
-    Seq(GrantType.Code, GrantType.Token)
+    Seq(GrantType.Code, GrantType.ClientCredentials, GrantType.Password, GrantType.RefreshToken)
   }
 
   /**

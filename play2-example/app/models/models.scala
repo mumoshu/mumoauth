@@ -5,7 +5,7 @@ import play.api.libs.json.{JsValue, Json}
 import oauth2._
 import oauth2.error._
 import oauth2.entity.{Code, Token}
-import oauth2.service.{CodeService, TokenService, AuthorizationService}
+import oauth2.service.{RefreshTokenService, CodeService, TokenService, AuthorizationService}
 import oauth2.definition.ScopeDefinition
 import oauth2.value_object.{ResponseType, Scope}
 
@@ -36,6 +36,16 @@ object CodeSvc extends CodeService {
     codes ++= Map(code.code -> code)
     play.api.Logger.info("codes: " + codes)
     code
+  }
+}
+
+object RefreshTokenSvc extends RefreshTokenService {
+  var refreshTokens = Set("myRefreshToken")
+  def find(ref: String): Option[String] = {
+    if (refreshTokens.contains(ref)) Some(ref) else None
+  }
+  def delete(ref: String): Unit = {
+    refreshTokens = refreshTokens - ref
   }
 }
 
@@ -115,7 +125,7 @@ object TokenSvc extends TokenService {
    * @param clientId should be a valid client id
    * @return
    */
-  def issue(grantType: String, code: String, clientId: String, redirectURI: Option[String]): Either[TokenError, (Scope, Token)] = {
+  def issueByCode(grantType: String, code: String, clientId: String, redirectURI: Option[String]): Either[TokenError, (Scope, Token)] = {
     val supportedGrantTypes = List("authorization_code")
     (grantType, CodeSvc.find(code), ClientSvc.find(clientId)) match {
       case (grantType, _, _) if !supportedGrantTypes.contains(grantType) =>
@@ -136,6 +146,15 @@ object TokenSvc extends TokenService {
         Right(
           issue(code)
         )
+    }
+  }
+  def refresh(refreshToken: String, scope: Scope): Either[TokenError, (Scope, Token)] = {
+    RefreshTokenSvc.find(refreshToken).map { ref =>
+      RefreshTokenSvc.delete(refreshToken)
+      Right((scope, issue(scope)))
+    }.getOrElse {
+      play.api.Logger.info("Refresh token(" + refreshToken + ") not found")
+      Left(InvalidGrantError)
     }
   }
 

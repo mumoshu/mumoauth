@@ -16,9 +16,9 @@ import models.CodeSvc._
 import models.AuthorizationSvc
 import scala.Some
 import models.Implicits._
-import oauth2.error.{InvalidClientError, InvalidGrantError, InvalidRequestError}
+import oauth2.error.{InvalidScopeError, InvalidClientError, InvalidGrantError, InvalidRequestError}
 import oauth2.entity.{Token, Client}
-import oauth2.value_object.{Scope, ResponseType, AuthorizedGrantRequest}
+import oauth2.value_object.{GrantType, Scope, ResponseType, AuthorizedGrantRequest}
 
 /**
  * The OAuth2 authorization server
@@ -180,7 +180,7 @@ object ServerController extends Controller {
             val client = clientId.orElse(basicAuthenticatedClientId)
             client match {
               case Some(client) =>
-                TokenSvc.issue(grant_type, code, client, Some(redirectURI)).fold(
+                TokenSvc.issueByCode(grant_type, code, client, Some(redirectURI)).fold(
                   e => BadRequest(e.buildResponse), {
                   case (requestedScope, token) => accessTokenResult(token, requestedScope)
                 })
@@ -215,6 +215,31 @@ object ServerController extends Controller {
                 accessTokenResult(TokenSvc.issue(validatedScope), validatedScope)
               case (Some(client), None, _) =>
                 accessTokenResult(TokenSvc.issue(ScopeDef.Default), ScopeDef.Default)
+            }
+          case ("refresh_token", _, _, _, _, _, scope) =>
+            val defaultScope: Option[Scope] = Some(ScopeDef.Default)
+            (basicAuthenticatedClient, scope, scope.flatMap(ScopeDef.find)) match {
+              case (None, _, _) =>
+                Unauthorized(InvalidClientError.buildResponse)
+              case (Some(client), _, _) if !ClientSvc.toMapped(client).authorizedGrantTypes.map(_.grantType).contains("refresh_token") =>
+                Unauthorized(InvalidGrantError.buildResponse)
+              case (_, Some(invalidScope), None) =>
+                BadRequest(InvalidRequestError("invalid scope: " + invalidScope).buildResponse)
+              case (Some(client), Some(_), maybeScope) =>
+                maybeScope.orElse(defaultScope).map { s =>
+                  request.queryString.get("refresh_token").flatMap(_.headOption) match {
+                    case Some(refreshToken) =>
+                      TokenSvc.refresh(refreshToken, s).right.map { case (s, accessToken) =>
+                        accessTokenResult(accessToken, s)
+                      }.left.map { e =>
+                        Unauthorized(InvalidGrantError.buildResponse)
+                      }.merge
+                    case _ =>
+                      BadRequest(InvalidRequestError("FIX ME: grant_type is 'refresh_token', but the 'refresh_token' parameter is missing in query string").buildResponse)
+                  }
+                }.getOrElse {
+                  BadRequest(InvalidScopeError("Missing scope").buildResponse)
+                }
             }
         }
       }

@@ -40,5 +40,6 @@ trait TokenService {
 
   def issue(code: Code): (Scope, Token)
   def issue(authorizedScope: Scope): Token
-  def issue(grantType: String, code: String, clientId: String, redirectURI: Option[String]): Either[TokenError, (Scope, Token)]
+  def issueByCode(grantType: String, code: String, clientId: String, redirectURI: Option[String]): Either[TokenError, (Scope, Token)]
+  def refresh(refreshToken: String, scope: Scope): Either[TokenError, (Scope, Token)]
 }
