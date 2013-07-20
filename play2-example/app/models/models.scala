@@ -437,6 +437,7 @@ case class InvalidRequestError(description: String, override val redirectURI: Op
 
 sealed trait GrantType {
   def grantType: String
+  def asString = grantType
 }
 
 object GrantType {

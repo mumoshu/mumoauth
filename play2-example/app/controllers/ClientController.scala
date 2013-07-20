@@ -3,7 +3,7 @@ package controllers
 import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
-import models.{Utils, AuthorizationRequest}
+import models.{GrantType, Utils, AuthorizationRequest}
 import play.api.libs.ws.WS
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.json.Json
@@ -93,16 +93,20 @@ object ClientController extends Controller {
    * @return
    */
   def authorizedCode(code: String, state: Option[String], service: String) = Action { req =>
+
+
+  import oauth2.AuthorizationCodeGrant.{AccessTokenRequestParameterNames, AccessTokenResponseParameterNames}
+
     val oauth2Settings = oauth2Services(service)
     /**
      * 4.1.3 Access Token Request
      * http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.3
      */
     val params = Map(
-      "grant_type" -> Seq("authorization_code"),
-      "code" -> Seq(code),
-      "redirect_uri" -> Seq(redirectionEndpointForCode + "?service=" + Utils.uriEncode(service)),
-      "client_id" -> Seq(oauth2Settings.clientId)
+      AccessTokenRequestParameterNames.GrantType -> Seq(GrantType.Code.asString),
+      AccessTokenRequestParameterNames.Code -> Seq(code),
+      AccessTokenRequestParameterNames.RedirectURI -> Seq(redirectionEndpointForCode + "?service=" + Utils.uriEncode(service)),
+      AccessTokenRequestParameterNames.ClientId -> Seq(oauth2Settings.clientId)
     ) ++ {
       if (oauth2Settings.requiresClientSecretInRequestParameter) Map("client_secret" -> Seq(oauth2Settings.clientSecret)) else Map.empty
     }
@@ -117,8 +121,8 @@ object ClientController extends Controller {
         case Array("application/x-www-form-urlencoded", _) =>
           val responseParameters = FormUrlEncodedParser.parse(response.body)
           try {
-            val tokenType = responseParameters("token_type").head
-            val accessToken = responseParameters("access_token").head
+            val tokenType = responseParameters(AccessTokenResponseParameterNames.TokenType).head
+            val accessToken = responseParameters(AccessTokenResponseParameterNames.AccessToken).head
             Ok(views.html.client.authorized(accessToken, service))
           } catch {
             case e: NoSuchElementException =>
@@ -129,7 +133,7 @@ object ClientController extends Controller {
           val responseBody = response.body
           try {
             val json = Json.parse(responseBody)
-            val accessToken = (json \\ "access_token").head.as[String]
+            val accessToken = (json \\ AccessTokenResponseParameterNames.AccessToken).head.as[String]
             Ok(views.html.client.authorized(accessToken, service))
           } catch {
             case e: ParsingException =>
