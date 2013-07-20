@@ -7,15 +7,23 @@ import play.api.mvc._
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
 import models._
-import models.InvalidRequestError
-import models.AuthorizationRequest
-import scala.Some
-import models.AuthorizedGrantRequest
 import play.api.libs.ws.WS
 import org.apache.commons.codec.binary.Base64
 import play.core.parsers.FormUrlEncodedParser
+import oauth2._
+import models.TokenSvc._
+import models.CodeSvc._
+import oauth2.InvalidRequestError
+import oauth2.AuthorizedGrantRequest
+import models.AuthorizationSvc
+import oauth2.AuthorizedGrantRequest
 import oauth2.Scope
-import models.Scope
+import oauth2.InvalidRequestError
+import oauth2.Token
+import scala.Some
+import oauth2.Client
+import oauth2.AuthorizedGrantRequest
+import models.Implicits._
 
 /**
  * The OAuth2 authorization server
@@ -70,7 +78,7 @@ object ServerController extends Controller {
         //
         // Authorizaton request
         // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.1
-        OAuth2Provider.validateCode(clientId, redirectURI, scope, state).fold[Result](
+        AuthorizationSvc.validateCode(clientId, redirectURI, scope, state).fold[Result](
           e => e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString)),
           r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest(validResponseType.asString, r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
         )
@@ -80,7 +88,7 @@ object ServerController extends Controller {
         //
         // Authorization request
         // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2.1
-        OAuth2Provider.validateImplicit(clientId, redirectURI, scope, state).fold[Result](
+        AuthorizationSvc.validateImplicit(clientId, redirectURI, scope, state).fold[Result](
           e => e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString)),
           r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest(validResponseType.asString, r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
         )
@@ -95,7 +103,7 @@ object ServerController extends Controller {
       e => BadRequest(e.toString),
       f => ResponseType(f.responseType) match {
         case ResponseType.Code =>
-          Scope.find(f.authorizedScope) match {
+          ScopeDef.find(f.authorizedScope) match {
             case Some(authorizedScope) =>
               val (baseUri, query) = f.redirectionURI.split("""\?""") match {
                 case Array(baseUri, query) =>
@@ -103,7 +111,7 @@ object ServerController extends Controller {
                 case Array(uri) =>
                   (uri, Map.empty[String, Seq[String]])
               }
-            val codeQuery = Code.generate(Scope.find(f.requestedScope).get, Some(authorizedScope), Some(f.redirectionURI)).parsedQueryParameterMap(f.state)
+            val codeQuery = models.CodeSvc.generate(ScopeDef.find(f.requestedScope).get, Some(authorizedScope), Some(f.redirectionURI)).parsedQueryParameterMap(f.state)
               val fullQuery = (query /: codeQuery) { case (q, (k, v)) =>
                   q.updated(k, q.getOrElse(k, Seq.empty) ++ v)
               }
@@ -118,10 +126,10 @@ object ServerController extends Controller {
               throw new RuntimeException("Unexpected scope: " + f.authorizedScope)
           }
         case ResponseType.Token =>
-          Scope.find(f.authorizedScope) match {
+          ScopeDef.find(f.authorizedScope) match {
             case Some(authorizedScope) =>
               Redirect(
-                f.redirectionURI + "#" + Token.issue(authorizedScope).buildURIComponent(Scope.find(f.requestedScope).get, f.state)
+                f.redirectionURI + "#" + TokenSvc.toURIComponentBuilder(TokenSvc.issue(authorizedScope)).buildURIComponent(ScopeDef.find(f.requestedScope).get, f.state)
               )
             case None =>
               throw new RuntimeException("Unexpected scope: " + f.authorizedScope)
@@ -144,7 +152,7 @@ object ServerController extends Controller {
       case Array(scheme, userpass) if scheme == "Basic" =>
         new String(Base64.decodeBase64(userpass), "utf-8").split(":")match {
           case Array(user, pass) =>
-            Client.find(user) match {
+            ClientSvc.find(user) match {
               case Some(client) if client.password == pass =>
                 Some(client)
               case _ =>
@@ -183,7 +191,7 @@ object ServerController extends Controller {
             val client = clientId.orElse(basicAuthenticatedClientId)
             client match {
               case Some(client) =>
-                Token.issue(grant_type, code, client, Some(redirectURI)).fold(
+                TokenSvc.issue(grant_type, code, client, Some(redirectURI)).fold(
                   e => BadRequest(e.buildResponse), {
                   case (requestedScope, token) => accessTokenResult(token, requestedScope)
                 })
@@ -194,12 +202,12 @@ object ServerController extends Controller {
           // 4.3 Resource Owner Password Credentials Grant
           // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.3
           case ("password", _, _, _, Some(username), Some(password), scope) =>
-            (request.headers.get("Authorization"), basicAuthenticatedClient, User.authenticate(username, password), scope, scope.flatMap(Scope.find)) match {
+            (request.headers.get("Authorization"), basicAuthenticatedClient, UserSvc.authenticate(username, password), scope, scope.flatMap(ScopeDef.find)) match {
               case (Some(_), Some(client), Some(user), Some(scope), Some(validatedScope)) =>
-                accessTokenResult(Token.issue(validatedScope), validatedScope)
+                accessTokenResult(TokenSvc.issue(validatedScope), validatedScope)
               case (_, _, Some(user), None, None) =>
-                val theScope = Scope.Default
-                accessTokenResult(Token.issue(theScope), theScope)
+                val theScope = ScopeDef.Default
+                accessTokenResult(TokenSvc.issue(theScope), theScope)
               case _ =>
                 BadRequest(InvalidRequestError("invalid_request").buildResponse)
             }
@@ -207,17 +215,17 @@ object ServerController extends Controller {
           // 4.4 Client Credentials Grant
           // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.4
           case ("client_credentials", _, _, _, _, _, scope) =>
-            (basicAuthenticatedClient, scope, scope.flatMap(Scope.find)) match {
+            (basicAuthenticatedClient, scope, scope.flatMap(ScopeDef.find)) match {
               case (None, _, _) =>
                 Unauthorized(InvalidClientError.buildResponse)
-              case (Some(client), _, _) if !client.authorizedGrantTypes.map(_.grantType).contains("client_credentials") =>
+              case (Some(client), _, _) if !ClientSvc.toMapped(client).authorizedGrantTypes.map(_.grantType).contains("client_credentials") =>
                 Unauthorized(InvalidGrantError.buildResponse)
               case (_, Some(invalidScope), None) =>
                 BadRequest(InvalidRequestError("invalid scope: " + invalidScope).buildResponse)
               case (Some(client), Some(_), Some(validatedScope)) =>
-                accessTokenResult(Token.issue(validatedScope), validatedScope)
+                accessTokenResult(TokenSvc.issue(validatedScope), validatedScope)
               case (Some(client), None, _) =>
-                accessTokenResult(Token.issue(Scope.Default), Scope.Default)
+                accessTokenResult(TokenSvc.issue(ScopeDef.Default), ScopeDef.Default)
             }
         }
       }

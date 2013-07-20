@@ -3,13 +3,12 @@ package controllers
 import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
-import models.{Utils, AuthorizationRequest}
 import play.api.libs.ws.WS
 import play.api.libs.json.Json
 import com.codahale.jerkson.ParsingException
 import play.api.Logger
 import play.core.parsers.FormUrlEncodedParser
-import oauth2.{OAuth2Settings, AuthorizationCodeGrant}
+import oauth2.{AuthorizationRequest, Utils, OAuth2Settings, AuthorizationCodeGrant}
 
 /**
  * The OAuth2 client

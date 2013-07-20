@@ -1,8 +1,8 @@
 package controllers
 
 import play.api.mvc._
-import models.Token
-import oauth2.AuthorizationHeader
+import oauth2.{Token, AuthorizationHeader}
+import models.TokenSvc
 
 object ProtectedResourcesController extends Controller {
 
@@ -11,7 +11,7 @@ object ProtectedResourcesController extends Controller {
     // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-7
     request.headers.get(AuthorizationHeader.Name).map(_.split(" ")) match {
       case Some(Array("Bearer", accessToken)) =>
-        Token.find(accessToken) match {
+        TokenSvc.find(accessToken) match {
           case Some(token) if !token.isExpired =>
             Ok("OK")
           case _ =>
