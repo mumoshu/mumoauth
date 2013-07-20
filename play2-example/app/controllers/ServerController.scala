@@ -196,7 +196,7 @@ object ServerController extends Controller {
               case (Some(_), Some(client), Some(user), Some(scope), Some(validatedScope)) =>
                 accessTokenResult(Token.issue(validatedScope), validatedScope)
               case (_, _, Some(user), None, None) =>
-                val theScope = Scope.default
+                val theScope = Scope.Default
                 accessTokenResult(Token.issue(theScope), theScope)
               case _ =>
                 BadRequest(InvalidRequestError("invalid_request").buildResponse)
@@ -215,7 +215,7 @@ object ServerController extends Controller {
               case (Some(client), Some(_), Some(validatedScope)) =>
                 accessTokenResult(Token.issue(validatedScope), validatedScope)
               case (Some(client), None, _) =>
-                accessTokenResult(Token.issue(Scope.default), Scope.default)
+                accessTokenResult(Token.issue(Scope.Default), Scope.Default)
             }
         }
       }

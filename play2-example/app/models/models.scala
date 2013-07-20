@@ -7,23 +7,45 @@ import java.net.{URLDecoder, URLEncoder, URI}
 /**
  * Scope of authorizations to take control of accesses to protected resources
  *
- * Valid characters for scopes are as follows:
- *
- * scala> 0x23 :: (0x23 to 0x5b toList) ++ (0x5d to 0x7e) map (_.toChar) mkString (" ")
- * res28: String = # # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
- *
- * @param value
- * @param scope
  * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.3
  */
-case class Scope(value: Int, scope: String)
+sealed trait Scope {
+   def value: Int
+   def scope: String
+}
+
+trait ScopeDefinition {
+  /**
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.3
+   * @see <code>0x21 :: (0x23 to 0x5b toList) ++ (0x5d to 0x7e) map ("\"" + _.toChar + "\"") mkString (", ")</code>
+   */
+  val allowedCharacters = Set(
+    "!", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", "@",
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
+    "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+    "[", "]", "^", "_", "`",
+    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q",
+    "r", "s", "t", "u", "v", "w", "x", "y", "z",
+    "{", "|", "}", "~"
+  )
+  def Values(scopes: Scope*): Map[String, Scope] = scopes.map(s => s.scope -> s).toMap
+  def find(scope: String): Option[Scope] = values.get(scope)
+
+  def values: Map[String, Scope]
+}
 
 /**
  * You may want to define more scopes.
  */
-object Scope {
-  val default = Scope(0, "default")
-  def find(scope: String) = if (scope == "default") Some(default) else None
+object Scope extends ScopeDefinition {
+
+  case object Default extends Scope {
+    val value = 0
+    val scope = "default"
+  }
+
+  def values = Values(Default)
 }
 
 /**
@@ -60,7 +82,7 @@ object Code {
     }
   }
   var codes = Map(
-    "myCode" -> Code("myCode", Scope.default, Scope.default)
+    "myCode" -> Code("myCode", Scope.Default, Scope.Default)
   )
   def generate(requestedScope: Scope, authorizedScope: Option[Scope], redirectURI: Option[String]): Code = {
     def newCode = {
@@ -319,7 +341,7 @@ object OAuth2Provider {
         if (scope.isDefined && validScope.isEmpty) {
           Left(InvalidRequestError("Undefined scope: " +  scope.get + " (length: " + scope.get.size + ")", redirectURI))
         } else {
-          val requestedScope = validScope.getOrElse(Scope.default)
+          val requestedScope = validScope.getOrElse(Scope.Default)
           Right(
             CodeGrantRequest(client, redirectURI.get, requestedScope, state)
           )
@@ -343,7 +365,7 @@ object OAuth2Provider {
         if (scope.isDefined && validScope.isEmpty) {
           Left(InvalidRequestError("Undefined scope: " +  scope.get + " (length: " + scope.get.size + ")", redirectURI))
         } else {
-          val requestedScope = validScope.getOrElse(Scope.default)
+          val requestedScope = validScope.getOrElse(Scope.Default)
           Right(
             ImplicitGrantRequest(client, redirectURI.get, requestedScope, state)
           )

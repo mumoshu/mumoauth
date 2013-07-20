@@ -78,7 +78,7 @@ object AuthorizationCodeGrant {
      * example, the value "3600" denotes that the access token will
      * expire in one hour from the time the response was generated.
      * If omitted, the authorization server SHOULD provide the
-     * expiration time via other means or document the default value.
+     * expiration time via other means or document the Default value.
      */
     val ExpiresIn = "expires_in"
     /**
