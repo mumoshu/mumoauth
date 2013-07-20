@@ -82,6 +82,11 @@ object ServerController extends Controller {
     }.merge
   }
 
+  /**
+   * The authenticated user authorized the grant request
+   * @todo Better naming.
+   * @return
+   */
   def code = Action { implicit request =>
     authorizedGrantRequestForm.bindFromRequest.fold(
       e => BadRequest(e.toString),

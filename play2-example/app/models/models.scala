@@ -72,6 +72,12 @@ object TokenSvc extends TokenService {
     token
   }
 
+  /**
+   * Issue an access token in Authorization Code Grant Flow
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.4
+   * @param code
+   * @return
+   */
   def issue(code: Code): (Scope, Token) = {
     val accessToken = "testToken"
     val accessTokenType = "Bearer"
@@ -82,6 +88,12 @@ object TokenSvc extends TokenService {
     (code.requestedScope, save(Token(accessToken, accessTokenType, refreshToken, new DateTime().plusSeconds(expiresIn), scope)))
   }
 
+  /**
+   * Issue an access token in Implicit Grant Flow
+   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2.2
+   * @param authorizedScope
+   * @return
+   */
   def issue(authorizedScope: Scope): Token = {
     val accessToken = "testToken"
     val accessTokenType = "Bearer"
