@@ -39,8 +39,9 @@ object InvalidClientError extends TokenError {
   val error = "invalid_client"
 }
 
-object InvalidScopeError extends TokenError {
+case class InvalidScopeError(description: String, override val redirectURI: Option[String] = None) extends TokenError {
   val error = "invalid_scope"
+  override val errorDescription = Some(description)
 }
 
 object RedirectURIError extends TokenError {

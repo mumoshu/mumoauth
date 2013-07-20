@@ -1,14 +1,19 @@
 package oauth2.service
 
-import oauth2.error.{InvalidClientError, InvalidRequestError, TokenError}
+import oauth2.error._
 import oauth2.entity.{Client}
 import oauth2.value_object._
 import oauth2._
 import scala.Left
-import oauth2.error.InvalidRequestError
 import scala.Some
 import scala.Right
 import oauth2.definition.ScopeDefinition
+import scala.Left
+import oauth2.value_object.CodeGrantRequest
+import oauth2.entity.Client
+import oauth2.value_object.ImplicitGrantRequest
+import scala.Some
+import scala.Right
 import scala.Left
 import oauth2.value_object.CodeGrantRequest
 import oauth2.entity.Client
@@ -17,7 +22,7 @@ import oauth2.value_object.ImplicitGrantRequest
 import scala.Some
 import scala.Right
 
-class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, scopeDef: ScopeDefinition, defaultScope: Scope) {
+class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, scopeDef: ScopeDefinition, defaultScope: Option[Scope]) {
   def validateCode(clientId: String, redirectURI: Option[String], requestedScope: Option[String], state: Option[String]): Either[TokenError, CodeGrantRequest] = {
     (clientSvc.find(clientId), redirectURI, requestedScope, requestedScope.flatMap(scopeDef.find)) match {
       case (None, _, _, _) =>
@@ -30,13 +35,19 @@ class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, sco
         Left(InvalidRequestError("redirect_uri is malformed."))
       case (Some(client), redirectionURI, scope, validScope) =>
         val redirectURI = client.redirectionURI.orElse(redirectionURI)
-        if (scope.isDefined && validScope.isEmpty) {
-          Left(InvalidRequestError("Undefined scope: " +  scope.get + " (length: " + scope.get.size + ")", redirectURI))
-        } else {
-          val requestedScope = validScope.getOrElse(defaultScope)
-          Right(
-            CodeGrantRequest(client, redirectURI.get, requestedScope, state)
-          )
+
+        (scope, validScope, defaultScope) match {
+          case (Some(a), None, None) =>
+            Left(InvalidScopeError("Undefined scope: " +  a, redirectURI))
+          case (_, a, b) =>
+            // "If the client omits the scope parameter when requesting
+            // authorization, the authorization server MUST either process the
+            // request using a pre-defined default value, or fail the request
+            // indicating an invalid scope."
+            // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.3
+            a.orElse(b)
+              .map { x => Right(CodeGrantRequest(client, redirectionURI.get, x, state)) }
+              .getOrElse { Left(InvalidScopeError("Missing scope", redirectURI)) }
         }
     }
   }
@@ -54,13 +65,18 @@ class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, sco
         Left(InvalidRequestError("redirect_uri is malformed."))
       case (Some(client), redirectionURI, scope, validScope) =>
         val redirectURI = client.redirectionURI.orElse(redirectionURI)
-        if (scope.isDefined && validScope.isEmpty) {
-          Left(InvalidRequestError("Undefined scope: " +  scope.get + " (length: " + scope.get.size + ")", redirectURI))
-        } else {
-          val requestedScope = validScope.getOrElse(defaultScope)
-          Right(
-            ImplicitGrantRequest(client, redirectURI.get, requestedScope, state)
-          )
+        (scope, validScope, defaultScope) match {
+          case (Some(a), None, None) =>
+            Left(InvalidScopeError("Undefined scope: " +  a, redirectURI))
+          case (_, a, b) =>
+            // "If the client omits the scope parameter when requesting
+            // authorization, the authorization server MUST either process the
+            // request using a pre-defined default value, or fail the request
+            // indicating an invalid scope."
+            // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.3
+            a.orElse(b)
+              .map { x => Right(ImplicitGrantRequest(client, redirectionURI.get, x, state)) }
+              .getOrElse { Left(InvalidScopeError("Missing scope", redirectURI)) }
         }
     }
   }

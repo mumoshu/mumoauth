@@ -134,7 +134,7 @@ object AuthorizationSvc extends AuthorizationService(
   ClientSvc,
   TokenSvc,
   ScopeDef,
-  ScopeDef.Default
+  Some(ScopeDef.Default)
 )
 
 object Implicits {
