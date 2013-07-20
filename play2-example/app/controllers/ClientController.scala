@@ -10,6 +10,7 @@ import play.api.libs.json.Json
 import com.codahale.jerkson.ParsingException
 import play.api.Logger
 import play.core.parsers.FormUrlEncodedParser
+import oauth2.AuthorizationCodeGrant
 
 case class OAuth2Settings(
   clientId: String,
@@ -25,6 +26,12 @@ case class OAuth2Settings(
   requiresClientSecretInRequestParameter: Boolean = false
 ) {
   def useBasicAuthForClientAuthentication = !requiresClientSecretInRequestParameter
+}
+
+object AuthorizationHeader {
+  val Name = "Authorization"
+  def valueFor(oauth2Settings: OAuth2Settings): String =
+    "Basic " + Base64.encodeBase64String((oauth2Settings.clientId + ":" + oauth2Settings.clientSecret).getBytes("utf-8"))
 }
 
 /**
@@ -106,28 +113,15 @@ object ClientController extends Controller {
   import oauth2.AuthorizationCodeGrant.{AccessTokenRequestParameterNames, AccessTokenResponseParameterNames}
 
     val oauth2Settings = oauth2Services(service)
-    /**
-     * 4.1.3 Access Token Request
-     * http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.3
-     */
-    val params = Map(
-      AccessTokenRequestParameterNames.GrantType -> Seq(GrantType.Code.asString),
-      AccessTokenRequestParameterNames.Code -> Seq(code),
-      AccessTokenRequestParameterNames.RedirectURI -> Seq(redirectionEndpointForCode + "?service=" + Utils.uriEncode(service)),
-      AccessTokenRequestParameterNames.ClientId -> Seq(oauth2Settings.clientId)
-    ) ++ {
-      if (oauth2Settings.requiresClientSecretInRequestParameter)
-        Map(
-          "client_secret" -> Seq(oauth2Settings.clientSecret)
-        )
-      else
-        Map.empty
-    }
-    val basicAuth: String = "Basic " + Base64.encodeBase64String((oauth2Settings.clientId + ":" + oauth2Settings.clientSecret).getBytes("utf-8"))
+  val (params, headers) = AuthorizationCodeGrant.AcecssTokenRequest.getParametersAndHeaders(
+    code = code,
+    redirectURI = redirectionEndpointForCode + "?service=" + Utils.uriEncode(service),
+    oauth2Settings = oauth2Settings
+  )
     val response = WS.url(oauth2Settings.tokenEndpoint).withHeaders(
-      "Authorization" -> basicAuth
+      headers.toSeq:_*
     ).post(params.mapValues(_.map(Utils.uriEncode(_)))).await.get
-    Logger.info("Basic auth= " + basicAuth)
+    Logger.info("Request Headers: \n" + headers.map { h => h._1 + ": " + h._2 }.mkString("\n"))
     Logger.info("response headers= " + response.ahcResponse.getHeaders)
     if (response.status == 200) {
       response.ahcResponse.getContentType.split(";").map(_.stripSuffix(" ")) match {

@@ -1,6 +1,40 @@
 package oauth2
 
+import models.{Utils, GrantType, Code}
+import controllers.{AuthorizationHeader, OAuth2Settings}
+
 object AuthorizationCodeGrant {
+  object AcecssTokenRequest {
+    def getParametersAndHeaders(
+      code: String,
+      redirectURI: String,
+      oauth2Settings: OAuth2Settings
+   ): (Map[String, Seq[String]], Map[String, String]) = {
+      /**
+       * 4.1.3 Access Token Request
+       * http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.3
+       */
+      val params = Map(
+        AccessTokenRequestParameterNames.GrantType -> Seq(GrantType.Code.asString),
+        AccessTokenRequestParameterNames.Code -> Seq(code),
+        AccessTokenRequestParameterNames.RedirectURI -> Seq(redirectURI),
+        AccessTokenRequestParameterNames.ClientId -> Seq(oauth2Settings.clientId)
+      ) ++ {
+        if (oauth2Settings.requiresClientSecretInRequestParameter)
+          Map(
+            "client_secret" -> Seq(oauth2Settings.clientSecret)
+          )
+        else
+          Map.empty
+      }
+      val authHeaderValue = AuthorizationHeader.valueFor(oauth2Settings)
+      (
+        params,
+        Map(AuthorizationHeader.Name -> AuthorizationHeader.valueFor(oauth2Settings))
+      )
+    }
+  }
+
   /**
    * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.3
    */
