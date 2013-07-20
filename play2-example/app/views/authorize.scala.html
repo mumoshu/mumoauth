@@ -3,7 +3,7 @@
 @import helper._
 
 @helper.form(action = routes.ServerController.code, 'id -> "myForm") {
-    @inputHidden(myForm("grant_type"))
+    @inputHidden(myForm("response_type"))
     @inputHidden(myForm("client_id"))
     @inputHidden(myForm("redirect_uri"))
     @inputHidden(myForm("requested_scope"))

@@ -32,12 +32,26 @@ case class Code(code: String, requestedScope: Scope, authorizedScope: Scope, red
 
 object Code {
   implicit def toURIComponentBuilder(code: Code) = new {
-    def buildURIComponent(state: Option[String]) = {
-      val params = Map(
-        "code" -> code.code
-      ) ++ (if (code.authorizedScope != code.requestedScope) Map("scope" -> code.authorizedScope) else Map.empty) ++
-      state.map(s => Map("state" -> s)).getOrElse(Map.empty)
-      params.map { case (key, value) => Utils.uriEncode(key) + "=" + Utils.uriEncode(value.toString) }.mkString("&")
+    def parsedQueryParameterMap(state: Option[String]): Map[String, Seq[String]] = {
+      val nameValuePairs = "code" -> code.code ::
+        List(code.authorizedScope.scope).filter(code.requestedScope !=).map("scope" ->) ++
+        state.map("state" ->)
+
+      { nameValuePairs toMap } mapValues { Seq(_) }
+    }
+
+//    def parsedQueryParameterMap(state: Option[String]): Map[String, Seq[String]] =
+//      Map(
+//        "code" -> code.code
+//      ) ++ (if (code.authorizedScope != code.requestedScope) Map("scope" -> code.authorizedScope) else Map.empty) ++
+//        state.map(s => Map("state" -> s)).getOrElse(Map.empty)
+    def buildURIComponent(state: Option[String]): String = {
+      val components = for {
+        (name, values) <- parsedQueryParameterMap(state)
+        v <- values
+      } yield Utils.uriEncode(name) + "=" + Utils.uriEncode(v)
+
+      components mkString "&"
     }
   }
   var codes = Map(
@@ -235,11 +249,35 @@ object Utils {
   def uriDecode(str: String) = URLDecoder.decode(str, "utf-8")
 }
 
-case class ResponseType(text: String)
+sealed trait ResponseType {
+  def asString: String
+}
 
 object ResponseType {
-  val Code = ResponseType("code")
-  val Token = ResponseType("token")
+
+  private case class ResponseTypeImpl(asString: String) extends ResponseType
+
+  private val CodeAsString = "code"
+  private val TokenAsString = "token"
+
+  def apply(str: String): ResponseType = str match {
+    case CodeAsString => Code
+    case TokenAsString => Token
+  }
+
+  def parseString(str: String): Either[Exception, ResponseType] = str match {
+    case CodeAsString => Right(Code)
+    case TokenAsString => Right(Token)
+    case invalidStr => Left(new Exception("\"" + invalidStr + "\" is not a valid response type. \"" + CodeAsString + "\" or \"" + TokenAsString + "\" is valid."))
+  }
+
+  case object Code extends ResponseType {
+    val asString = CodeAsString
+  }
+
+  case object Token extends ResponseType {
+    val asString = TokenAsString
+  }
 }
 
 trait GrantRequest {
@@ -258,7 +296,7 @@ case class CodeGrantRequest(client: Client, redirectionURI: String, requestedSco
   val responseType = ResponseType.Code
 }
 
-case class AuthorizedGrantRequest(grantType: String, clientId: String, redirectionURI: String, requestedScope: String, authorizedScope: String, state: Option[String])
+case class AuthorizedGrantRequest(responseType: String, clientId: String, redirectionURI: String, requestedScope: String, authorizedScope: String, state: Option[String])
 
 object OAuth2Provider {
   def validateCode(clientId: String, redirectURI: Option[String], requestedScope: Option[String], state: Option[String]): Either[TokenError, CodeGrantRequest] = {
@@ -397,11 +435,27 @@ case class InvalidRequestError(description: String, override val redirectURI: Op
   override val errorDescription = Some(description)
 }
 
-case class GrantType(grantType: String)
+sealed trait GrantType {
+  def grantType: String
+}
 
 object GrantType {
-  val Code = GrantType("authorization_code")
-  val Token = GrantType("token")
+
+  private val AuthorizationCodeAsString = "authorization_code"
+  private val TokenAsString = "token"
+
+  def apply(str: String): GrantType = str match {
+    case AuthorizationCodeAsString => Code
+    case TokenAsString => Token
+  }
+
+  case object Code extends GrantType {
+    val grantType = AuthorizationCodeAsString
+  }
+
+  case object Token extends GrantType {
+    val grantType = TokenAsString
+  }
 }
 
 trait GrantTypeService {

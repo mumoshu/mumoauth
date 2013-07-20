@@ -3,7 +3,7 @@ package controllers
 import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
-import models.AuthorizationRequest
+import models.{Utils, AuthorizationRequest}
 import play.api.libs.ws.WS
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.json.Json
@@ -36,8 +36,8 @@ object ClientController extends Controller {
       tokenEndpoint = "http://localhost:9000/token"
     ),
     "github" -> OAuth2Settings(
-      clientId = "PUT YOUR CLIENT ID HERE",
-      clientSecret = "PUT YOUR CLIENT SECRET HERE",
+      clientId = "57540cb09c1ee5944e2b",
+      clientSecret = "f6f946d9d5389fb99bdb40627dee299dfbb3a288",
       authorizationEndpoint = "https://github.com/login/oauth/authorize",
       tokenEndpoint = "https://github.com/login/oauth/access_token",
       requiresClientSecretInRequestParameter = true
@@ -92,7 +92,7 @@ object ClientController extends Controller {
    * @param state the exact value the authorization server received from the client
    * @return
    */
-  def authorizedCode(code: String, state: Option[String], service: String) = Action {
+  def authorizedCode(code: String, state: Option[String], service: String) = Action { req =>
     val oauth2Settings = oauth2Services(service)
     /**
      * 4.1.3 Access Token Request
@@ -101,7 +101,7 @@ object ClientController extends Controller {
     val params = Map(
       "grant_type" -> Seq("authorization_code"),
       "code" -> Seq(code),
-      "redirect_uri" -> Seq(redirectionEndpointForCode),
+      "redirect_uri" -> Seq(redirectionEndpointForCode + "?service=" + Utils.uriEncode(service)),
       "client_id" -> Seq(oauth2Settings.clientId)
     ) ++ {
       if (oauth2Settings.requiresClientSecretInRequestParameter) Map("client_secret" -> Seq(oauth2Settings.clientSecret)) else Map.empty
@@ -109,7 +109,7 @@ object ClientController extends Controller {
     val basicAuth: String = "Basic " + Base64.encodeBase64String((oauth2Settings.clientId + ":" + oauth2Settings.clientSecret).getBytes("utf-8"))
     val response = WS.url(oauth2Settings.tokenEndpoint).withHeaders(
       "Authorization" -> basicAuth
-    ).post(params).await.get
+    ).post(params.mapValues(_.map(Utils.uriEncode(_)))).await.get
     Logger.info("Basic auth= " + basicAuth)
     Logger.info("response headers= " + response.ahcResponse.getHeaders)
     if (response.status == 200) {

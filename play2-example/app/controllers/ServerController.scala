@@ -13,6 +13,7 @@ import scala.Some
 import models.AuthorizedGrantRequest
 import play.api.libs.ws.WS
 import org.apache.commons.codec.binary.Base64
+import play.core.parsers.FormUrlEncodedParser
 
 /**
  * The OAuth2 authorization server
@@ -39,10 +40,11 @@ object ServerController extends Controller {
 
   val authorizedGrantRequestForm = Form(
     mapping(
-      "grant_type" -> text,
+      "response_type" -> text,
       "client_id" -> text,
       "redirect_uri" -> text,
       "requested_scope" -> text,
+      // The user may choose to grant scopes partially, so requested_scope and authorized_scope can be different
       "authorized_scope" -> text,
       "state" -> optional(text)
     )(AuthorizedGrantRequest.apply)(AuthorizedGrantRequest.unapply)
@@ -58,8 +60,9 @@ object ServerController extends Controller {
    * @return
    */
   def authorize(response_type: String, client_id: Option[String], redirect_uri: Option[String], scope: Option[String], state: Option[String]) = Action {
-    (response_type, client_id, redirect_uri, scope, state) match {
-      case ("code", Some(clientId), redirectURI, scope, state) =>
+    val validResponseType = ResponseType(response_type)
+    (validResponseType, client_id, redirect_uri, scope, state) match {
+      case (ResponseType.Code, Some(clientId), redirectURI, scope, state) =>
         // Authorization code flow
         // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1
         //
@@ -67,9 +70,9 @@ object ServerController extends Controller {
         // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.1
         OAuth2Provider.validateCode(clientId, redirectURI, scope, state).fold[Result](
           e => e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString)),
-          r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest("code", r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
+          r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest(validResponseType.asString, r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
         )
-      case ("token", Some(clientId), redirectURI, scope, state) =>
+      case (ResponseType.Token, Some(clientId), redirectURI, scope, state) =>
         // Implicit grant
         // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2
         //
@@ -77,7 +80,7 @@ object ServerController extends Controller {
         // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2.1
         OAuth2Provider.validateImplicit(clientId, redirectURI, scope, state).fold[Result](
           e => e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString)),
-          r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest("token", r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
+          r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest(validResponseType.asString, r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
         )
       case (reqType, _, _, _, _) =>
         val e = InvalidRequestError("Invalid request_type: " + reqType)
@@ -88,17 +91,31 @@ object ServerController extends Controller {
   def code = Action { implicit request =>
     authorizedGrantRequestForm.bindFromRequest.fold(
       e => BadRequest(e.toString),
-      f => f.grantType match {
-        case "code" =>
+      f => ResponseType(f.responseType) match {
+        case ResponseType.Code =>
           Scope.find(f.authorizedScope) match {
             case Some(authorizedScope) =>
+              val (baseUri, query) = f.redirectionURI.split("""\?""") match {
+                case Array(baseUri, query) =>
+                  (baseUri, FormUrlEncodedParser.parse(query, "UTF-8"))
+                case Array(uri) =>
+                  (uri, Map.empty[String, Seq[String]])
+              }
+            val codeQuery = Code.generate(Scope.find(f.requestedScope).get, Some(authorizedScope), Some(f.redirectionURI)).parsedQueryParameterMap(f.state)
+              val fullQuery = (query /: codeQuery) { case (q, (k, v)) =>
+                  q.updated(k, q.getOrElse(k, Seq.empty) ++ v)
+              }
+            val fullQueryStr = (for {
+              (name, values) <- fullQuery
+              v <- values
+            } yield name + "=" + v).mkString("&")
               Redirect(
-                f.redirectionURI + "?" + Code.generate(Scope.find(f.requestedScope).get, Some(authorizedScope), Some(f.redirectionURI)).buildURIComponent(f.state)
+                baseUri + "?" + fullQueryStr
               )
             case None =>
               throw new RuntimeException("Unexpected scope: " + f.authorizedScope)
           }
-        case "token" =>
+        case ResponseType.Token =>
           Scope.find(f.authorizedScope) match {
             case Some(authorizedScope) =>
               Redirect(
