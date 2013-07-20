@@ -14,6 +14,8 @@ import models.AuthorizedGrantRequest
 import play.api.libs.ws.WS
 import org.apache.commons.codec.binary.Base64
 import play.core.parsers.FormUrlEncodedParser
+import oauth2.Scope
+import models.Scope
 
 /**
  * The OAuth2 authorization server
