@@ -4,6 +4,10 @@ import org.specs2.mutable.Specification
 
 import Helpers.FakeRequestGenerator
 
+/**
+ * See "The OAuth 1.0 Protocol"
+ * @see http://tools.ietf.org/html/rfc5849
+ */
 object SignatureSpec extends Specification {
 
   "HMAC-SHA1 signature method" should {
