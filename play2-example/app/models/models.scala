@@ -7,7 +7,7 @@ import oauth2.error._
 import oauth2.entity.{Code, Token}
 import oauth2.service.{CodeService, TokenService, AuthorizationService}
 import oauth2.definition.ScopeDefinition
-import oauth2.value_object.Scope
+import oauth2.value_object.{ResponseType, Scope}
 
 object ScopeDef extends ScopeDefinition {
 

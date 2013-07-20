@@ -7,7 +7,21 @@ import oauth2.error._
 import oauth2.value_object._
 
 class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, scopeDef: ScopeDefinition, defaultScope: Option[Scope]) {
-  def validateCode(clientId: String, redirectURI: Option[String], requestedScope: Option[String], state: Option[String]): Either[TokenError, CodeGrantRequest] = {
+  def validateGrant(responseType: ResponseType, clientId: String, redirectURI: Option[String], requestedScope: Option[String], state: Option[String]): Either[TokenError, GrantRequest] = {
+    responseType match {
+      case ResponseType.Code =>
+        validateCodeGrant(clientId, redirectURI, requestedScope, state)
+      case ResponseType.Token =>
+        validateImplicitGrant(clientId, redirectURI, requestedScope, state)
+    }
+  }
+
+  // Authorization code flow
+  // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1
+  //
+  // Authorizaton request
+  // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.1
+  def validateCodeGrant(clientId: String, redirectURI: Option[String], requestedScope: Option[String], state: Option[String]): Either[TokenError, CodeGrantRequest] = {
     (clientSvc.find(clientId), redirectURI, requestedScope, requestedScope.flatMap(scopeDef.find)) match {
       case (None, _, _, _) =>
         Left(InvalidClientError)
@@ -36,8 +50,12 @@ class AuthorizationService(clientSvc: ClientService, tokenSvc: TokenService, sco
     }
   }
 
-  // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2.1
-  def validateImplicit(clientId: String, redirectURI: Option[String], requestedScope: Option[String], state: Option[String]): Either[TokenError, ImplicitGrantRequest] = {
+  // Implicit grant
+  // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2
+  //
+  // Authorization request
+  // @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2.1
+  def validateImplicitGrant(clientId: String, redirectURI: Option[String], requestedScope: Option[String], state: Option[String]): Either[TokenError, ImplicitGrantRequest] = {
     (clientSvc.find(clientId), redirectURI, requestedScope, requestedScope.flatMap(scopeDef.find)) match {
       case (None, _, _, _) =>
         Left(InvalidClientError)

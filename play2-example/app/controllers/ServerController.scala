@@ -65,32 +65,21 @@ object ServerController extends Controller {
    * @return
    */
   def authorize(response_type: String, client_id: Option[String], redirect_uri: Option[String], scope: Option[String], state: Option[String]) = Action {
-    val validResponseType = ResponseType(response_type)
-    (validResponseType, client_id, redirect_uri, scope, state) match {
-      case (ResponseType.Code, Some(clientId), redirectURI, scope, state) =>
-        // Authorization code flow
-        // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1
-        //
-        // Authorizaton request
-        // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.1
-        AuthorizationSvc.validateCode(clientId, redirectURI, scope, state).fold[Result](
-          e => e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString)),
-          r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest(validResponseType.asString, r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
-        )
-      case (ResponseType.Token, Some(clientId), redirectURI, scope, state) =>
-        // Implicit grant
-        // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2
-        //
-        // Authorization request
-        // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.2.1
-        AuthorizationSvc.validateImplicit(clientId, redirectURI, scope, state).fold[Result](
-          e => e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString)),
-          r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest(validResponseType.asString, r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
-        )
-      case (reqType, _, _, _, _) =>
-        val e = InvalidRequestError("Invalid request_type: " + reqType)
-        e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString))
-    }
+    ResponseType.parseString(response_type).right.map { responseType =>
+      client_id match {
+        case Some(clientId) =>
+          AuthorizationSvc.validateGrant(responseType, clientId, redirect_uri, scope, state).fold[Result](
+            e => e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString)),
+            r => Ok(views.html.authorize(authorizedGrantRequestForm.fill(AuthorizedGrantRequest(responseType.asString, r.client.id, r.redirectionURI, r.requestedScope.scope, r.requestedScope.scope, r.state))))
+          )
+        case _ =>
+          val e = InvalidRequestError("Missing client_id", redirect_uri)
+          e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString))
+      }
+    }.left.map { invaldiResponseTypeError =>
+      val e = InvalidRequestError("Invalid response_type: " + response_type)
+      e.buildRedirectionURI.map(Redirect(_)).getOrElse(BadRequest(e.toString))
+    }.merge
   }
 
   def code = Action { implicit request =>
