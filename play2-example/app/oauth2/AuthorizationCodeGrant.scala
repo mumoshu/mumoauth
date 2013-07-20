@@ -1,7 +1,6 @@
 package oauth2
 
-import models.{Utils, GrantType, Code}
-import controllers.{AuthorizationHeader, OAuth2Settings}
+import models.GrantType
 
 object AuthorizationCodeGrant {
   object AcecssTokenRequest {

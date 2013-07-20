@@ -3,36 +3,13 @@ package controllers
 import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
-import models.{GrantType, Utils, AuthorizationRequest}
+import models.{Utils, AuthorizationRequest}
 import play.api.libs.ws.WS
-import org.apache.commons.codec.binary.Base64
 import play.api.libs.json.Json
 import com.codahale.jerkson.ParsingException
 import play.api.Logger
 import play.core.parsers.FormUrlEncodedParser
-import oauth2.AuthorizationCodeGrant
-
-case class OAuth2Settings(
-  clientId: String,
-  clientSecret: String,
-  authorizationEndpoint: String,
-  tokenEndpoint: String,
-
-  /**
-   * If true, include the client credentials in the request body to authenticate clients.
-   * If not, use HTTP Basic Authentication scheme to authenticate clients.
-   * @see http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-2.3.1
-   */
-  requiresClientSecretInRequestParameter: Boolean = false
-) {
-  def useBasicAuthForClientAuthentication = !requiresClientSecretInRequestParameter
-}
-
-object AuthorizationHeader {
-  val Name = "Authorization"
-  def valueFor(oauth2Settings: OAuth2Settings): String =
-    "Basic " + Base64.encodeBase64String((oauth2Settings.clientId + ":" + oauth2Settings.clientSecret).getBytes("utf-8"))
-}
+import oauth2.{OAuth2Settings, AuthorizationCodeGrant}
 
 /**
  * The OAuth2 client
@@ -110,7 +87,7 @@ object ClientController extends Controller {
   def authorizedCode(code: String, state: Option[String], service: String) = Action { req =>
 
 
-  import oauth2.AuthorizationCodeGrant.{AccessTokenRequestParameterNames, AccessTokenResponseParameterNames}
+  import oauth2.AuthorizationCodeGrant.AccessTokenResponseParameterNames
 
     val oauth2Settings = oauth2Services(service)
   val (params, headers) = AuthorizationCodeGrant.AcecssTokenRequest.getParametersAndHeaders(
