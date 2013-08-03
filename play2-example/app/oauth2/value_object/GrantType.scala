@@ -29,12 +29,20 @@ object GrantType {
    */
   private val RefreshTokenAsString = "refresh_token"
 
-  def apply(str: String): GrantType = str match {
-    case AuthorizationCodeAsString => Code
-    case PasswordAsString => Password
-    case ClientCredentialsAsString => ClientCredentials
-    case RefreshTokenAsString => RefreshToken
+  private val values = Map(
+    AuthorizationCodeAsString -> Code,
+    PasswordAsString -> Password,
+    ClientCredentialsAsString -> ClientCredentials,
+    RefreshTokenAsString -> RefreshToken
+  )
+
+  def apply(str: String): GrantType = parseString(str).getOrElse {
+    throw new RuntimeException(
+      "Invalid grant_type '" + str + "' which must be one of " + values.keys.map("'" + _ + "'").mkString(", ") + "."
+    )
   }
+
+  def parseString(str: String): Option[GrantType] = values.get(str)
 
   case object Code extends GrantType {
     val grantType = AuthorizationCodeAsString

@@ -159,7 +159,9 @@ class ServerController(clientService: ClientSvc, tokenService: TokenSvc, userSer
 
     val form = Form(
       tuple(
-        "grant_type" -> text,
+        "grant_type" -> text
+          .verifying(str => GrantType.parseString(str).isDefined)
+          .transform[GrantType](str => GrantType(str), grantType => grantType.asString),
         "code" -> text,
         "redirect_uri" -> text,
         "client_id" -> optional(text),
@@ -175,12 +177,12 @@ class ServerController(clientService: ClientSvc, tokenService: TokenSvc, userSer
           // 4.1 Authorization Code Grant
           // 4.1.3 Access Token Request
           // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1.3
-          case (grant_type, code, redirectURI, clientId, _, _, _) if grant_type == "authorization_code" =>
+          case (GrantType.Code, code, redirectURI, clientId, _, _, _) =>
 
             val client = clientId.orElse(basicAuthenticatedClientId)
             client match {
               case Some(client) =>
-                tokenService.issueByCode(grant_type, code, client, Some(redirectURI)).fold(
+                tokenService.issueByCode(GrantType.Code, code, client, Some(redirectURI)).fold(
                   e => BadRequest(e.buildResponse), {
                   case (requestedScope, token) => accessTokenResult(token, requestedScope)
                 })
@@ -190,7 +192,7 @@ class ServerController(clientService: ClientSvc, tokenService: TokenSvc, userSer
 
           // 4.3 Resource Owner Password Credentials Grant
           // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.3
-          case ("password", _, _, _, Some(username), Some(password), scope) =>
+          case (GrantType.Password, _, _, _, Some(username), Some(password), scope) =>
             (request.headers.get("Authorization"), basicAuthenticatedClient, userService.authenticate(username, password), scope, scope.flatMap(ScopeDef.find)) match {
               case (Some(_), Some(client), Some(user), Some(scope), Some(validatedScope)) =>
                 accessTokenResult(tokenService.issue(validatedScope), validatedScope)
@@ -200,10 +202,20 @@ class ServerController(clientService: ClientSvc, tokenService: TokenSvc, userSer
               case _ =>
                 BadRequest(InvalidRequestError("invalid_request").buildResponse)
             }
-
+          case (GrantType.Password, _, _, _, maybeUsername, maybePassword, scope) =>
+            val msg = maybeUsername.map { username =>
+              "username is '" + username + "'"
+            }.getOrElse {
+              "username is missing"
+            } + " and " + maybePassword.map { password =>
+              "password is present"
+            }.getOrElse {
+              "password is missing"
+            } + "."
+            Unauthorized(msg)
           // 4.4 Client Credentials Grant
           // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.4
-          case ("client_credentials", _, _, _, _, _, scope) =>
+          case (GrantType.ClientCredentials, _, _, _, _, _, scope) =>
             (basicAuthenticatedClient, scope, scope.flatMap(ScopeDef.find)) match {
               case (None, _, _) =>
                 Unauthorized(InvalidClientError.buildResponse)
@@ -216,7 +228,7 @@ class ServerController(clientService: ClientSvc, tokenService: TokenSvc, userSer
               case (Some(client), None, _) =>
                 accessTokenResult(tokenService.issue(ScopeDef.Default), ScopeDef.Default)
             }
-          case ("refresh_token", _, _, _, _, _, scope) =>
+          case (GrantType.RefreshToken, _, _, _, _, _, scope) =>
             val defaultScope: Option[Scope] = Some(ScopeDef.Default)
             (basicAuthenticatedClient, scope, scope.flatMap(ScopeDef.find)) match {
               case (None, _, _) =>

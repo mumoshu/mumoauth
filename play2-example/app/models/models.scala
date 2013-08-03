@@ -7,7 +7,7 @@ import oauth2.error._
 import oauth2.entity.{Code, Token}
 import oauth2.service.{RefreshTokenService, CodeService, TokenService, AuthorizationService}
 import oauth2.definition.ScopeDefinition
-import oauth2.value_object.{ResponseType, Scope}
+import oauth2.value_object.{GrantType, ResponseType, Scope}
 
 object ScopeDef extends ScopeDefinition {
 
@@ -148,6 +148,10 @@ class TokenSvc extends TokenService {
         )
     }
   }
+
+  def issueByCode(grantType: GrantType, code: String, clientId: String, redirectURI: Option[String]): Either[TokenError, (Scope, Token)] =
+    issueByCode(grantType.asString, code, clientId, redirectURI)
+
   def refresh(refreshToken: String, scope: Scope): Either[TokenError, (Scope, Token)] = {
     RefreshTokenSvc.find(refreshToken).map { ref =>
       RefreshTokenSvc.delete(refreshToken)
