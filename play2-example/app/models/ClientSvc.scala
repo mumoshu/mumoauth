@@ -3,7 +3,7 @@ package models
 import oauth2.entity.{Client}
 import oauth2.service.ClientService
 
-object ClientSvc extends ClientService {
+class ClientSvc extends ClientService {
   var clients = Map("test" -> Client("test", "pass"))
   def find(id: String): Option[Client] = {
     clients.get(id)
@@ -16,3 +16,5 @@ object ClientSvc extends ClientService {
   }
 
 }
+
+object ClientSvc extends ClientSvc

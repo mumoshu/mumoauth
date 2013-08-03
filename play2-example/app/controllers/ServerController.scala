@@ -25,7 +25,7 @@ import oauth2.value_object.{GrantType, Scope, ResponseType, AuthorizedGrantReque
  * - ask the resource owner for authorizations to access protected resources (`authorize` action represents the Authorization endpoint defined in OAuth2 spec)
  * - issue access tokens to clients (`token` action represents the Token endpoint defined in OAuth2 spec)
  */
-object ServerController extends Controller {
+class ServerController(clientService: ClientSvc, tokenService: TokenSvc, userService: UserSvc) extends Controller {
   
   def index = Action {
     Ok(views.html.index("Your new application is ready."))
@@ -118,7 +118,7 @@ object ServerController extends Controller {
           ScopeDef.find(f.authorizedScope) match {
             case Some(authorizedScope) =>
               Redirect(
-                f.redirectionURI + "#" + TokenSvc.toURIComponentBuilder(TokenSvc.issue(authorizedScope)).buildURIComponent(ScopeDef.find(f.requestedScope).get, f.state)
+                f.redirectionURI + "#" + tokenService.toURIComponentBuilder(tokenService.issue(authorizedScope)).buildURIComponent(ScopeDef.find(f.requestedScope).get, f.state)
               )
             case None =>
               throw new RuntimeException("Unexpected scope: " + f.authorizedScope)
@@ -141,7 +141,7 @@ object ServerController extends Controller {
       case Array(scheme, userpass) if scheme == "Basic" =>
         new String(Base64.decodeBase64(userpass), "utf-8").split(":")match {
           case Array(user, pass) =>
-            ClientSvc.find(user) match {
+            clientService.find(user) match {
               case Some(client) if client.password == pass =>
                 Some(client)
               case _ =>
@@ -180,7 +180,7 @@ object ServerController extends Controller {
             val client = clientId.orElse(basicAuthenticatedClientId)
             client match {
               case Some(client) =>
-                TokenSvc.issueByCode(grant_type, code, client, Some(redirectURI)).fold(
+                tokenService.issueByCode(grant_type, code, client, Some(redirectURI)).fold(
                   e => BadRequest(e.buildResponse), {
                   case (requestedScope, token) => accessTokenResult(token, requestedScope)
                 })
@@ -191,12 +191,12 @@ object ServerController extends Controller {
           // 4.3 Resource Owner Password Credentials Grant
           // http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.3
           case ("password", _, _, _, Some(username), Some(password), scope) =>
-            (request.headers.get("Authorization"), basicAuthenticatedClient, UserSvc.authenticate(username, password), scope, scope.flatMap(ScopeDef.find)) match {
+            (request.headers.get("Authorization"), basicAuthenticatedClient, userService.authenticate(username, password), scope, scope.flatMap(ScopeDef.find)) match {
               case (Some(_), Some(client), Some(user), Some(scope), Some(validatedScope)) =>
-                accessTokenResult(TokenSvc.issue(validatedScope), validatedScope)
+                accessTokenResult(tokenService.issue(validatedScope), validatedScope)
               case (_, _, Some(user), None, None) =>
                 val theScope = ScopeDef.Default
-                accessTokenResult(TokenSvc.issue(theScope), theScope)
+                accessTokenResult(tokenService.issue(theScope), theScope)
               case _ =>
                 BadRequest(InvalidRequestError("invalid_request").buildResponse)
             }
@@ -207,21 +207,21 @@ object ServerController extends Controller {
             (basicAuthenticatedClient, scope, scope.flatMap(ScopeDef.find)) match {
               case (None, _, _) =>
                 Unauthorized(InvalidClientError.buildResponse)
-              case (Some(client), _, _) if !ClientSvc.toMapped(client).authorizedGrantTypes.map(_.grantType).contains("client_credentials") =>
+              case (Some(client), _, _) if !clientService.toMapped(client).authorizedGrantTypes.map(_.grantType).contains("client_credentials") =>
                 Unauthorized(InvalidGrantError.buildResponse)
               case (_, Some(invalidScope), None) =>
                 BadRequest(InvalidRequestError("invalid scope: " + invalidScope).buildResponse)
               case (Some(client), Some(_), Some(validatedScope)) =>
-                accessTokenResult(TokenSvc.issue(validatedScope), validatedScope)
+                accessTokenResult(tokenService.issue(validatedScope), validatedScope)
               case (Some(client), None, _) =>
-                accessTokenResult(TokenSvc.issue(ScopeDef.Default), ScopeDef.Default)
+                accessTokenResult(tokenService.issue(ScopeDef.Default), ScopeDef.Default)
             }
           case ("refresh_token", _, _, _, _, _, scope) =>
             val defaultScope: Option[Scope] = Some(ScopeDef.Default)
             (basicAuthenticatedClient, scope, scope.flatMap(ScopeDef.find)) match {
               case (None, _, _) =>
                 Unauthorized(InvalidClientError.buildResponse)
-              case (Some(client), _, _) if !ClientSvc.toMapped(client).authorizedGrantTypes.map(_.grantType).contains("refresh_token") =>
+              case (Some(client), _, _) if !clientService.toMapped(client).authorizedGrantTypes.map(_.grantType).contains("refresh_token") =>
                 Unauthorized(InvalidGrantError.buildResponse)
               case (_, Some(invalidScope), None) =>
                 BadRequest(InvalidRequestError("invalid scope: " + invalidScope).buildResponse)
@@ -229,7 +229,7 @@ object ServerController extends Controller {
                 maybeScope.orElse(defaultScope).map { s =>
                   request.queryString.get("refresh_token").flatMap(_.headOption) match {
                     case Some(refreshToken) =>
-                      TokenSvc.refresh(refreshToken, s).right.map { case (s, accessToken) =>
+                      tokenService.refresh(refreshToken, s).right.map { case (s, accessToken) =>
                         accessTokenResult(accessToken, s)
                       }.left.map { e =>
                         Unauthorized(InvalidGrantError.buildResponse)
@@ -255,3 +255,4 @@ object ServerController extends Controller {
   
 }
 
+object ServerController extends ServerController(ClientSvc, TokenSvc, UserSvc)

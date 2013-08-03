@@ -49,7 +49,7 @@ object RefreshTokenSvc extends RefreshTokenService {
   }
 }
 
-object TokenSvc extends TokenService {
+class TokenSvc extends TokenService {
 
   class ParamBuilder(val token: Token) extends BaseParamBuilder {
     /**
@@ -161,6 +161,8 @@ object TokenSvc extends TokenService {
 
 }
 
+object TokenSvc extends TokenSvc
+
 object AuthorizationSvc extends AuthorizationService(
   ClientSvc,
   TokenSvc,
@@ -192,7 +194,7 @@ case class User(id: String, secret: String)
 /**
  * The user service stub
  */
-object UserSvc {
+class UserSvc {
   var users = Map("testuser" -> User("testuser", "pass"))
   def authenticate(id: String, password: String): Option[User] = {
     users.get(id) match {
@@ -203,3 +205,5 @@ object UserSvc {
     }
   }
 }
+
+object UserSvc extends UserSvc
