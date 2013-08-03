@@ -137,17 +137,7 @@ object ThreeLegged {
 
 }
 
-trait Client {
-  def obtainTemporaryCredentials: Unit
 
-  def obtainTokenCredentials: Unit
-
-  def requestResourceOwnerAuthorizaton: Unit
-
-  def requestTemporaryCredentials: Unit
-
-  def redirectsResourceOwner: Unit
-}
 
 /**
  * If you're storing protected data on your users' behalf, they shouldn't be spreading their
@@ -158,8 +148,4 @@ trait Provider {
 
 }
 
-trait ResourceOwner {
-  def approvesRequest(): Unit
 
-  def revokeAccessToken(): Unit
-}
